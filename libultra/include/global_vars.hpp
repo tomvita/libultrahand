@@ -169,6 +169,8 @@ namespace ult {
     extern const std::string COPY_SYMBOL;
     extern const std::string INPROGRESS_SYMBOL;
     extern const std::string STAR_SYMBOL;
+    extern const std::string BOX_SOLID_SYMBOL;
+    extern const std::string BOX_EMPTY_SYMBOL;
     extern const std::string DIVIDER_SYMBOL;
     extern const std::string NOTIFY_HEADER;
 
@@ -178,6 +180,8 @@ namespace ult {
     extern std::atomic<int> unzipPercentage;
     extern std::atomic<int> copyPercentage;
     extern std::atomic<int> displayPercentage;
+    
+    extern bool showCheatNotes;
     
     void resetPercentages();
 }

@@ -44,9 +44,9 @@ namespace ult {
     const std::string RELOADING_FLAG_FILENAME          = "RELOADING.flag";
 
     // Project names
-    CONSTEXPR_STRING std::string ULTRAHAND_PROJECT_NAME         = "ultrahand";
-    CONSTEXPR_STRING std::string CAPITAL_ULTRAHAND_PROJECT_NAME = "Ultrahand";
-    CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_1           = "Ultra";
+    CONSTEXPR_STRING std::string ULTRAHAND_PROJECT_NAME         = "breezehand";
+    CONSTEXPR_STRING std::string CAPITAL_ULTRAHAND_PROJECT_NAME = "Breezehand";
+    CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_1           = "Breez";
     CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_2           = "hand";
 
     // Paths
@@ -172,6 +172,8 @@ namespace ult {
     CONSTEXPR_STRING std::string COPY_SYMBOL         = "\u2192";
     CONSTEXPR_STRING std::string INPROGRESS_SYMBOL   = "\u25CF";
     CONSTEXPR_STRING std::string STAR_SYMBOL         = "\u2605";
+    CONSTEXPR_STRING std::string BOX_SOLID_SYMBOL    = "\u25A0";
+    CONSTEXPR_STRING std::string BOX_EMPTY_SYMBOL    = "\u25A1";
     CONSTEXPR_STRING std::string DIVIDER_SYMBOL      = "";
     CONSTEXPR_STRING std::string NOTIFY_HEADER       = "  ";
 
@@ -179,6 +181,9 @@ namespace ult {
 
     // Atomic variables for progress tracking
     std::atomic<int> displayPercentage(0); // for interpreter percentage progress
+
+    // UI display settings
+    bool showCheatNotes = true; // Hidden by default, toggle with Y button
 
     void resetPercentages() {
         displayPercentage.store(-1, std::memory_order_release);

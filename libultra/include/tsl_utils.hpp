@@ -370,6 +370,8 @@ namespace ult {
     extern std::string TRADITIONAL_CHINESE;
 
     extern std::string OVERLAYS; //defined in libTesla now
+    extern std::string CHEATS;
+    extern std::string NOTES;
     extern std::string OVERLAYS_ABBR;
     extern std::string OVERLAY;
     extern std::string HIDDEN_OVERLAYS;
@@ -476,7 +478,7 @@ namespace ult {
     extern std::string APP_SETTINGS;
     extern std::string ON_MAIN_MENU;
     extern std::string ON_A_COMMAND;
-    extern std::string ON_OVERLAY_PACKAGE;
+    extern std::string ON_OVERLAY;
     extern std::string FEATURES;
     extern std::string SWIPE_TO_OPEN;
 

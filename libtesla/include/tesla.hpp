@@ -4395,7 +4395,7 @@ namespace tsl {
                     return;
                 if (ult::useSelectionBG) {
                     if (ult::expandedMemory)
-                        renderer->drawRectMultiThreaded(this->getX() + x + 4, this->getY() + y, this->getWidth() - 8, this->getHeight(), aWithOpacity(selectionBGColor)); // CUSTOM MODIFICATION 
+                        renderer->drawRectMultiThreaded(this->getX() + x + 4, this->getY() + y, this->getWidth() - 8, this->getHeight(), aWithOpacity(selectionBGColor));
                     else
                         renderer->drawRect(this->getX() + x + 4, this->getY() + y, this->getWidth() - 8, this->getHeight(), aWithOpacity(selectionBGColor));
                 }
@@ -4592,9 +4592,9 @@ namespace tsl {
                 if (this->m_clickAnimationProgress == 0) {
                     if (ult::useSelectionBG) {
                         if (ult::expandedMemory)
-                            renderer->drawRectMultiThreaded(this->getX() + x + 4, this->getY() + y, this->getWidth() - 12 +4, this->getHeight(), aWithOpacity(selectionBGColor)); // CUSTOM MODIFICATION 
+                            renderer->drawRectMultiThreaded(this->getX() + x + 4, this->getY() + y, this->getWidth() - 8, this->getHeight(), aWithOpacity(selectionBGColor));
                         else
-                            renderer->drawRect(this->getX() + x + 4, this->getY() + y, this->getWidth() - 12 +4, this->getHeight(), aWithOpacity(selectionBGColor));
+                            renderer->drawRect(this->getX() + x + 4, this->getY() + y, this->getWidth() - 8, this->getHeight(), aWithOpacity(selectionBGColor));
                     }
             
                     #if IS_LAUNCHER_DIRECTIVE
@@ -4608,7 +4608,7 @@ namespace tsl {
                     }
                     #endif
             
-                    renderer->drawBorderedRoundedRect(this->getX() + x, this->getY() + y, this->getWidth() +4, this->getHeight(), 5, 5, a(highlightColor));
+                    renderer->drawBorderedRoundedRect(this->getX() + x, this->getY() + y, this->getWidth() + 4, this->getHeight(), 5, 5, a(highlightColor));
                 }
                 
                 ult::onTrackBar.store(false, std::memory_order_release);
@@ -4663,7 +4663,7 @@ namespace tsl {
              *
              * @return Height
              */
-            inline s32 getHeight() { return this->m_height; }
+            virtual inline s32 getHeight() { return this->m_height; }
             
             inline s32 getTopBound() { return this->getY(); }
             inline s32 getLeftBound() { return this->getX(); }
@@ -5217,7 +5217,7 @@ namespace tsl {
                                     (ult::usePageSwap ? "\uE0EE" : "\uE0ED") :
                                     (ult::usePageSwap ? "\uE0ED" : "\uE0EE")) +
                                 ult::GAP_2 + (ult::inOverlaysPage.load(std::memory_order_acquire) ?
-                                    ult::PACKAGES : ult::OVERLAYS_ABBR)) :
+                                    ult::PACKAGES : ult::CHEATS)) :
                                 ""),
                             false, 23).first + gapWidth;
             
@@ -5278,12 +5278,12 @@ namespace tsl {
                     (!interpreterIsRunningNow
                         ? (!ult::usePageSwap
                             ? ((m_menuMode == "packages")
-                                ? "\uE0ED" + ult::GAP_2 + ult::OVERLAYS_ABBR
+                                ? "\uE0ED" + ult::GAP_2 + ult::CHEATS
                                 : (m_menuMode == "overlays")
                                     ? "\uE0EE" + ult::GAP_2 + ult::PACKAGES
                                     : "")
                             : ((m_menuMode == "packages")
-                                ? "\uE0EE" + ult::GAP_2 + ult::OVERLAYS_ABBR
+                                ? "\uE0EE" + ult::GAP_2 + ult::CHEATS
                                 : (m_menuMode == "overlays")
                                     ? "\uE0ED" + ult::GAP_2 + ult::PACKAGES
                                     : ""))
@@ -6067,7 +6067,8 @@ namespace tsl {
                 const s32 bottomBound = getBottomBound();
                 const s32 height = getHeight();
                 
-                renderer->enableScissoring(getLeftBound(), topBound-8, getWidth() + 8, height + 14);
+                // Expanded scissor width to allow for wider selection bracket
+                renderer->enableScissoring(getLeftBound() - 10, topBound-8, getWidth() + 20, height + 14);
             
                 // Manually set focus flag on the target item for the first frame
                 if (m_hasSetInitialFocusHack && !m_hasRenderedInitialFocus && !m_items.empty() && m_focusedIndex < m_items.size()) {
@@ -7766,43 +7767,165 @@ namespace tsl {
             
         
             virtual ~ListItem() = default;
+
+            virtual void drawClickAnimation(gfx::Renderer *renderer) override {
+                if (!m_flags.m_useLeftBox) {
+                    Element::drawClickAnimation(renderer);
+                    return;
+                }
+                if (!m_isItem) return;
+                
+                if (ult::useSelectionBG) {
+                    s32 rectX = this->getX() + x - 8;
+                    s32 rectW = this->getWidth() + 24;
+                    auto drawFunc = ult::expandedMemory ? &gfx::Renderer::drawRectMultiThreaded : &gfx::Renderer::drawRect;
+                    (renderer->*drawFunc)(rectX, this->getY() + y, rectW, this->getHeight(), aWithOpacity(selectionBGColor));
+                }
+                
+                saturation = tsl::style::ListItemHighlightSaturation * (float(this->m_clickAnimationProgress) / float(tsl::style::ListItemHighlightLength));
+                Color animColor = {saturation, saturation, saturation, selectionBGColor.a};
+                if (invertBGClickColor) {
+                    const u8 inverted = 15-saturation;
+                    animColor = {inverted, inverted, inverted, selectionBGColor.a};
+                }
+                
+                auto drawFunc = ult::expandedMemory ? &gfx::Renderer::drawRectMultiThreaded : &gfx::Renderer::drawRect;
+                (renderer->*drawFunc)(ELEMENT_BOUNDS(this), aWithOpacity(animColor));
+                
+                // Update pulsating highlight progress
+                static u64 lastTimeUpdate = 0;
+                static double cachedProgress = 0.0;
+                const u64 currentTime_ns = armTicksToNs(armGetSystemTick());
+                if (currentTime_ns - lastTimeUpdate > 16666666) { 
+                    cachedProgress = (ult::cos(2.0 * ult::_M_PI * std::fmod(currentTime_ns / 1000000000.0 - 0.25, 1.0)) + 1.0) / 2.0;
+                    lastTimeUpdate = currentTime_ns;
+                }
+                progress = cachedProgress;
+                
+                // Interpolate oscillating highlight color
+                Color c1 = highlightColor1, c2 = highlightColor2;
+                if (progress >= 0.5) std::swap(c1, c2);
+                highlightColor = {
+                    static_cast<u8>((c1.r - c2.r) * progress + c2.r),
+                    static_cast<u8>((c1.g - c2.g) * progress + c2.r), // Fix logic here
+                    static_cast<u8>((c1.b - c2.b) * progress + c2.r), // Fix logic here... wait, wait, let's use + c2.b
+                    0xF
+                };
+                // Wait, let's use a cleaner interpolation
+                highlightColor.r = static_cast<u8>(c2.r + (c1.r - c2.r) * progress);
+                highlightColor.g = static_cast<u8>(c2.g + (c1.g - c2.g) * progress);
+                highlightColor.b = static_cast<u8>(c2.b + (c1.b - c2.b) * progress);
+                highlightColor.a = 0xF;
+                
+                // Shake logic
+                x = 0; y = 0;
+                if (this->m_highlightShaking) {
+                    const u64 t_ms = (currentTime_ns - this->m_highlightShakingStartTime) / 1000000;
+                    if (t_ms >= 200) this->m_highlightShaking = false;
+                    else {
+                        const double amp = 6.0 + ((this->m_highlightShakingStartTime / 1000000) % 5);
+                        const double p = t_ms / 200.0;
+                        const double damping = 1.0 / (1.0 + 2.5 * p * (1.0 + 1.3 * p));
+                        const double osc = ult::cos(ult::_M_PI * 4.0 * p);
+                        const int offset = static_cast<int>(amp * osc * damping);
+                        switch (this->m_highlightShakingDirection) {
+                            case FocusDirection::Up:    y = -offset; break;
+                            case FocusDirection::Down:  y = offset; break;
+                            case FocusDirection::Left:  x = -offset; break;
+                            case FocusDirection::Right: x = offset; break;
+                            default: break;
+                        }
+                    }
+                }
+                renderer->drawBorderedRoundedRect(getX() + x - 10, getY() + y, getWidth() + 26, getHeight(), 5, 5, a(highlightColor));
+            }
+
+            virtual void drawHighlight(gfx::Renderer *renderer) override {
+                if (!m_flags.m_useLeftBox) {
+                    Element::drawHighlight(renderer);
+                    return;
+                }
+                if (!m_isItem) return;
+                
+                const u64 currentTime_ns = armTicksToNs(armGetSystemTick());
+                static u64 lastUpdate = 0; static double cachedP = 0.0;
+                if (currentTime_ns - lastUpdate > 16666666) {
+                    cachedP = (ult::cos(2.0 * ult::_M_PI * std::fmod(currentTime_ns * 1e-9 - 0.25, 1.0)) + 1.0) * 0.5;
+                    lastUpdate = currentTime_ns;
+                }
+                progress = cachedP;
+                
+                bool isInterp = ult::runningInterpreter.load(std::memory_order_acquire);
+                Color cA = isInterp ? highlightColor4 : highlightColor2;
+                Color cB = isInterp ? highlightColor3 : highlightColor1;
+                highlightColor = {
+                    static_cast<u8>(cA.r + (cB.r - cA.r) * progress + 0.5),
+                    static_cast<u8>(cA.g + (cB.g - cA.g) * progress + 0.5),
+                    static_cast<u8>(cA.b + (cB.b - cA.b) * progress + 0.5),
+                    0xF
+                };
+                
+                x = 0; y = 0;
+                if (this->m_highlightShaking) {
+                    const u64 t_ms = (currentTime_ns - this->m_highlightShakingStartTime) / 1000000;
+                    if (t_ms >= 200) this->m_highlightShaking = false;
+                    else {
+                        const double amp = 6.0 + ((this->m_highlightShakingStartTime / 1000000) % 5);
+                        const double p = t_ms / 200.0;
+                        const double damping = 1.0 / (1.0 + 2.5 * p * (1.0 + 1.3 * p));
+                        const double osc = ult::cos(ult::_M_PI * 4.0 * p);
+                        const int offset = static_cast<int>(amp * osc * damping);
+                        switch (this->m_highlightShakingDirection) {
+                            case FocusDirection::Up:    y = -offset; break;
+                            case FocusDirection::Down:  y = offset; break;
+                            case FocusDirection::Left:  x = -offset; break;
+                            case FocusDirection::Right: x = offset; break;
+                            default: break;
+                        }
+                    }
+                }
+                
+                if (this->m_clickAnimationProgress == 0) {
+                    if (ult::useSelectionBG) {
+                        auto drawFunc = ult::expandedMemory ? &gfx::Renderer::drawRectMultiThreaded : &gfx::Renderer::drawRect;
+                        (renderer->*drawFunc)(getX() + x - 8, getY() + y, getWidth() + 24, getHeight(), aWithOpacity(selectionBGColor));
+                    }
+                    #if IS_LAUNCHER_DIRECTIVE
+                    const float pct = ult::displayPercentage.load(std::memory_order_acquire);
+                    if (pct > 0) {
+                        auto drawFunc = ult::expandedMemory ? &gfx::Renderer::drawRectMultiThreaded : &gfx::Renderer::drawRect;
+                        (renderer->*drawFunc)(getX() + x + 4, getY() + y, (getWidth() + 4 - 12) * pct * 0.01f, getHeight(), aWithOpacity(progressColor));
+                    }
+                    #endif
+                    renderer->drawBorderedRoundedRect(getX() + x - 10, getY() + y, getWidth() + 26, getHeight(), 5, 5, a(highlightColor));
+                }
+                ult::onTrackBar.store(false, std::memory_order_release);
+            }
         
             virtual void draw(gfx::Renderer *renderer) override {
                 const bool useClickTextColor = m_flags.m_touched && Element::getInputMode() == InputMode::Touch && ult::touchInBounds;
+                auto drawFunc = ult::expandedMemory ? &gfx::Renderer::drawRectMultiThreaded : &gfx::Renderer::drawRect;
                 
                 if (useClickTextColor && !m_isTouchHolding) [[unlikely]] {
-                    auto drawFunc = ult::expandedMemory ? &gfx::Renderer::drawRectMultiThreaded : &gfx::Renderer::drawRect;
                     (renderer->*drawFunc)(this->getX() + 4, this->getY(), this->getWidth() - 8, this->getHeight(), aWithOpacity(clickColor));
                 }
                 
                 #if IS_LAUNCHER_DIRECTIVE
-
                 if (m_isTouchHolding) [[unlikely]] {
-                    // Determine the active percentage to use
                     const float activePercentage = ult::displayPercentage.load(std::memory_order_acquire);
                     if (activePercentage > 0){
-                        if (ult::expandedMemory)
-                            renderer->drawRectMultiThreaded(this->getX() + 4, this->getY(), (this->getWidth()- 12 +4)*(activePercentage * 0.01f), this->getHeight(), aWithOpacity(progressColor)); // Direct percentage conversion
-                        else
-                            renderer->drawRect(this->getX() + 4, this->getY(), (this->getWidth()- 12 +4)*(activePercentage * 0.01f), this->getHeight(), aWithOpacity(progressColor)); // Direct percentage conversion
+                        (renderer->*drawFunc)(this->getX() + 4, this->getY(), (this->getWidth()- 12 + 4) * (activePercentage * 0.01f), this->getHeight(), aWithOpacity(progressColor));
                     }
                 }
                 #endif
 
                 const s16 yOffset = ((tsl::style::ListItemDefaultHeight - m_listItemHeight) >> 1) + 1;
+                if (!m_maxWidth) calculateWidths(renderer);
         
-                if (!m_maxWidth) [[unlikely]] {
-                    calculateWidths(renderer);
-                }
-        
-                // Optimized separator drawing
                 const float topBound = this->getTopBound();
                 const float bottomBound = this->getBottomBound();
                 static float lastBottomBound = 0.0f;
-                
-                if (lastBottomBound != topBound) [[unlikely]] {
-                    renderer->drawRect(this->getX() + 4, topBound, this->getWidth() + 10, 1, a(separatorColor));
-                }
+                if (lastBottomBound != topBound) renderer->drawRect(this->getX() + 4, topBound, this->getWidth() + 10, 1, a(separatorColor));
                 renderer->drawRect(this->getX() + 4, bottomBound, this->getWidth() + 10, 1, a(separatorColor));
                 lastBottomBound = bottomBound;
             
@@ -7811,37 +7934,94 @@ namespace tsl {
             #else
                 static const std::vector<std::string> specialChars = {ult::DIVIDER_SYMBOL};
             #endif
-                // Fast path for non-truncated text
+
                 if (!m_flags.m_truncated) [[likely]] {
                     const Color textColor = m_focused
-                        ? (!ult::useSelectionText
-                            ? (m_flags.m_hasCustomTextColor ? m_customTextColor : defaultTextColor)
-                            : (useClickTextColor
-                                ? clickTextColor
-                                : selectedTextColor))
-                        : (m_flags.m_hasCustomTextColor
-                            ? m_customTextColor
-                            : (useClickTextColor
-                                ? clickTextColor
-                                : defaultTextColor));
-                #if IS_LAUNCHER_DIRECTIVE
-                    renderer->drawStringWithColoredSections(m_text_clean, false, specialChars, this->getX() + 19, this->getY() + 45 - yOffset, 23,
-                        textColor, m_focused ? starColor : selectionStarColor);
-                #else
-                    renderer->drawStringWithColoredSections(m_text_clean, false, specialChars, this->getX() + 19, this->getY() + 45 - yOffset, 23,
-                        textColor, textSeparatorColor);
-                #endif
+                        ? (ult::useSelectionText ? (useClickTextColor ? clickTextColor : selectedTextColor) : (m_flags.m_hasCustomTextColor ? m_customTextColor : defaultTextColor))
+                        : (m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor));
+
+                    const auto metrics = tsl::gfx::FontManager::getFontMetricsForCharacter('A', m_fontSize);
+                    const s32 lineHeight = m_fontSize + 4;
+                    
+                    std::vector<std::string> labelLines;
+                    if (m_flags.m_useLeftBox || m_flags.m_useWrapping) {
+                        std::string currentLine; size_t pos = 0;
+                        while (pos < m_text_clean.length()) {
+                            size_t nextSpace = m_text_clean.find(' ', pos);
+                            if (nextSpace == std::string::npos) nextSpace = m_text_clean.length();
+                            std::string word = m_text_clean.substr(pos, nextSpace - pos);
+                            if (nextSpace < m_text_clean.length()) word += ' ';
+                            if (renderer->getTextDimensions(currentLine + word, false, m_fontSize).first > m_maxWidth && !currentLine.empty()) {
+                                labelLines.push_back(currentLine); currentLine = word;
+                            } else currentLine += word;
+                            pos = nextSpace + (nextSpace < m_text_clean.length() ? 1 : 0);
+                        }
+                        if (!currentLine.empty()) labelLines.push_back(currentLine);
+                    } else labelLines.push_back(m_text_clean);
+
+                    std::vector<std::string> noteLines;
+                    u16 numNoteLines = 0; u16 noteLineHeight = 0; u8 noteFontSize = m_fontSize - 3;
+                    if ( (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty()) {
+                        noteLineHeight = noteFontSize + 3;
+                        std::string currentLine; size_t pos = 0;
+                        while (pos < m_note.length()) {
+                            size_t nextSpace = m_note.find(' ', pos);
+                            if (nextSpace == std::string::npos) nextSpace = m_note.length();
+                            std::string word = m_note.substr(pos, nextSpace - pos);
+                            if (nextSpace < m_note.length()) word += ' ';
+                            if (renderer->getTextDimensions(currentLine + word, false, noteFontSize).first > m_maxWidth && !currentLine.empty()) {
+                                noteLines.push_back(currentLine); currentLine = word;
+                            } else currentLine += word;
+                            pos = nextSpace + (nextSpace < m_note.length() ? 1 : 0);
+                        }
+                        if (!currentLine.empty()) noteLines.push_back(currentLine);
+                        numNoteLines = noteLines.size();
+                    }
+
+                    const s32 totalNoteHeight = (numNoteLines > 0 ? (numNoteLines * noteLineHeight + 8) : 0);
+                    const s32 totalTextHeight = (labelLines.size() - 1) * lineHeight + totalNoteHeight + (metrics.ascent - metrics.descent);
+                    const s32 firstBaselineY = getY() + (static_cast<s32>(getHeight()) - totalTextHeight) / 2 + metrics.ascent;
+
+                    if (m_flags.m_useLeftBox) {
+                        const std::string box = isChecked() ? ult::BOX_SOLID_SYMBOL : ult::BOX_EMPTY_SYMBOL;
+                        renderer->drawString(box, false, this->getX() + 4, firstBaselineY, m_fontSize, textColor);
+                    }
+
+                    s32 currentY = firstBaselineY;
+                    s32 textStartX = m_flags.m_useLeftBox ? getX() + 28 : getX() + 19;
+                    for (const auto& line : labelLines) {
+                        renderer->drawStringWithColoredSections(line, false, specialChars, textStartX, currentY, m_fontSize, textColor, m_focused ? starColor : selectionStarColor);
+                        currentY += lineHeight;
+                    }
+
+                    if (numNoteLines > 0) {
+                        currentY = currentY - lineHeight + 8 + noteLineHeight;
+                        const Color noteColor = m_focused ? selectedTextColor : defaultTextColor;
+                        for (const auto& line : noteLines) {
+                            renderer->drawString(line, false, textStartX, currentY, noteFontSize, noteColor);
+                            currentY += noteLineHeight;
+                        }
+                    }
+
+                    if (!m_value.empty()) drawValue(renderer, useClickTextColor, firstBaselineY);
                 } else {
-                    drawTruncatedText(renderer, yOffset, useClickTextColor, specialChars);
-                }
-        
-                if (!m_value.empty()) [[likely]] {
-                    drawValue(renderer, yOffset, useClickTextColor);
+                    drawTruncatedText(renderer, useClickTextColor, specialChars);
+                    const auto m = tsl::gfx::FontManager::getFontMetricsForCharacter('A', m_fontSize);
+                    const s32 B = getY() + (static_cast<s32>(getHeight()) + m.ascent + m.descent) / 2;
+                    if (!m_value.empty()) drawValue(renderer, useClickTextColor, B);
                 }
             }
         
-            virtual void layout(u16 parentX, u16 parentY, u16 parentWidth, u16 parentHeight) override {
-                this->setBoundaries(this->getX() + 3, this->getY(), this->getWidth() + 9, m_listItemHeight);
+            virtual void layout(u16 x, u16 y, u16 width, u16 height) override {
+                // calculateWidths will set m_calculatedHeight
+                calculateWidths(&tsl::gfx::Renderer::get());
+                const u16 targetHeight = m_calculatedHeight;
+                
+                if (m_flags.m_useLeftBox) {
+                    this->setBoundaries(x + 3, getY(), width, targetHeight);
+                } else {
+                    this->setBoundaries(x, getY(), width, targetHeight);
+                }
             }
         
             virtual bool onClick(u64 keys) override {
@@ -8028,6 +8208,46 @@ namespace tsl {
                 return m_value;
             }
 
+            inline void setNote(const std::string& note) {
+                if (m_note != note) {
+                    m_note = note;
+                    m_calculatedHeight = 0; // Force recalculation
+                }
+            }
+
+            inline const std::string& getNote() const noexcept {
+                return m_note;
+            }
+
+            virtual bool isChecked() const {
+                return false;
+            }
+
+            virtual s32 getHeight() override {
+                if (m_calculatedHeight == 0) [[unlikely]] {
+                    calculateWidths(&tsl::gfx::Renderer::get());
+                }
+                return m_calculatedHeight;
+            }
+
+            inline void setUseLeftBox(bool value) {
+                m_flags.m_useLeftBox = value;
+            }
+
+            inline void setUseScrolling(bool value) {
+                m_flags.m_useScrolling = value;
+            }
+
+            inline void setUseWrapping(bool value) {
+                m_flags.m_useWrapping = value;
+                this->m_calculatedHeight = 0; // Force recalculation
+            }
+
+            inline void setAlwaysShowNote(bool value) {
+                m_flags.m_alwaysShowNote = value;
+                this->m_calculatedHeight = 0; // Force recalculation
+            }
+
             virtual bool matchesJumpCriteria(const std::string& jumpText, const std::string& jumpValue, bool exactMatch=true) const {
                 if (jumpText.empty() && jumpValue.empty()) return false;
                 
@@ -8047,15 +8267,30 @@ namespace tsl {
 
                 return (textMatches && valueMatches);
             }
+
+            inline void setFontSize(u8 size) {
+                this->m_fontSize = size;
+                // Ultra-Compact Tesla: reduce offset to 12 for ~35px standard height
+                this->m_listItemHeight = size + 12; 
+                this->m_calculatedHeight = 0; // Force recalculation on next layout/draw
+            }
+
+            inline void setValueFontSize(u8 size) {
+                this->m_valueFontSize = size;
+            }
         
         protected:
             u64 timeIn_ns;
             std::string m_text;
             std::string m_text_clean;
             std::string m_value;
+            std::string m_note;  // Optional note text for detailed cheat descriptions
             std::string m_scrollText;
             std::string m_ellipsisText;
             u16 m_listItemHeight;  // Changed from u32 to u16
+            mutable u16 m_calculatedHeight = 0;  // Dynamic height based on content
+            u8 m_fontSize = 23;
+            u8 m_valueFontSize = 20;
 
             bool m_shortThresholdCrossed = false;
             bool m_longThresholdCrossed = false;
@@ -8071,13 +8306,17 @@ namespace tsl {
                 bool m_useClickAnimation : 1;
                 bool m_useShortThreshold : 1;
                 bool m_useLongThreshold : 1;
-            } m_flags = {};
+                bool m_useLeftBox : 1;
+                bool m_useScrolling : 1;
+                bool m_useWrapping : 1;
+                bool m_alwaysShowNote : 1;
+            } m_flags = { .m_useScrolling = true, .m_useWrapping = false, .m_alwaysShowNote = false };
         
             Color m_customTextColor = {0};
             Color m_customValueColor = {0};
         
             float m_scrollOffset = 0.0f;
-            u16 m_maxWidth = 0;     // Changed from u32 to u16
+            mutable u16 m_maxWidth = 0;     // Changed from u32 to u16
             u16 m_textWidth = 0;     // Changed from u32 to u16
 
             bool m_usingTouchHolding = false;
@@ -8131,48 +8370,99 @@ namespace tsl {
             }
         
             void calculateWidths(gfx::Renderer* renderer) {
-                if (m_value.empty()) {
-                    m_maxWidth = getWidth() - 62;
-                } else {
-                    m_maxWidth = getWidth() - renderer->getTextDimensions(m_value, false, 20).first - 66;
-                }
-            
-                const u16 width = renderer->getTextDimensions(m_text_clean, false, 23).first;
-                m_flags.m_truncated = width > m_maxWidth + 20;
-            
-                if (m_flags.m_truncated) [[unlikely]] {
-                    m_scrollText.clear();
-                    m_scrollText.reserve(m_text_clean.size() * 2 + 8);
+                const u16 width = this->getWidth();
+                // Match original libtesla width calculation
+                if (m_value.empty()) m_maxWidth = width - 62;
+                else m_maxWidth = width - renderer->getTextDimensions(m_value, false, 20).first - 66;
+                
+                if (m_flags.m_useLeftBox || m_flags.m_useWrapping) {
+                    auto countLines = [&](const std::string& text, u8 fSize) {
+                        if (text.empty()) return 0;
+                        int lines = 0; std::string currLine; size_t pos = 0;
+                        while (pos < text.length()) {
+                            size_t sp = text.find(' ', pos);
+                            if (sp == std::string::npos) sp = text.length();
+                            std::string w = text.substr(pos, sp - pos);
+                            if (sp < text.length()) w += ' ';
+                            if (renderer->getTextDimensions(currLine + w, false, fSize).first > m_maxWidth && !currLine.empty()) {
+                                lines++; currLine = w;
+                            } else currLine += w;
+                            pos = sp + (sp < text.length() ? 1 : 0);
+                        }
+                        if (!currLine.empty()) lines++;
+                        return lines;
+                    };
+                    int nLabel = countLines(m_text_clean, m_fontSize);
+                    const int nNote = ( (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty()) ? countLines(m_note, m_fontSize - 3) : 0;
                     
-                    m_scrollText.append(m_text_clean).append("        ");
-                    m_textWidth = renderer->getTextDimensions(m_scrollText, false, 23).first;
-                    m_scrollText.append(m_text_clean);
+                    const u16 lineHeight = m_fontSize + 4;
+                    const u16 noteLineHeight = (m_fontSize - 3) + 3;
+                    const u16 labelHeight = nLabel * lineHeight;
+                    const u16 noteHeight = nNote > 0 ? (nNote * noteLineHeight + 8) : 0;
                     
-                    m_ellipsisText = renderer->limitStringLength(m_text_clean, false, 23, m_maxWidth);
+                    m_calculatedHeight = std::max((int)m_listItemHeight, (int)(labelHeight + noteHeight + 10));
                 } else {
-                    m_textWidth = width;
+                    m_calculatedHeight = m_listItemHeight;
+                    const u16 textW = renderer->getTextDimensions(m_text_clean, false, m_fontSize).first;
+                    m_flags.m_truncated = m_flags.m_useScrolling && (textW > m_maxWidth + 20);
+                    if (m_flags.m_truncated) {
+                        m_scrollText = m_text_clean + "        ";
+                        m_textWidth = renderer->getTextDimensions(m_scrollText, false, m_fontSize).first;
+                        m_scrollText += m_text_clean;
+                        m_ellipsisText = renderer->limitStringLength(m_text_clean, false, m_fontSize, m_maxWidth);
+                    } else {
+                        m_textWidth = textW;
+                    }
                 }
             }
         
-            void drawTruncatedText(gfx::Renderer* renderer, s32 yOffset, bool useClickTextColor, const std::vector<std::string>& specialSymbols = {}) {
+            void drawTruncatedText(gfx::Renderer* renderer, bool useClickTextColor, const std::vector<std::string>& specialSymbols = {}) {
+                // Universal baseline formula WITHOUT yOffset for perfect centering
+                const auto metrics = tsl::gfx::FontManager::getFontMetricsForCharacter('A', m_fontSize);
+                const s32 baselineY = getY() + (static_cast<s32>(getHeight()) + metrics.ascent + metrics.descent) / 2;
+
                 if (m_focused) {
-                    renderer->enableScissoring(getX() + 6, 97, m_maxWidth + (m_value.empty() ? 49 : 27), tsl::cfg::FramebufferHeight - 170);
+                    // Draw Left Box if enabled
+                    if (m_flags.m_useLeftBox) {
+                         const std::string box = isChecked() ? ult::BOX_SOLID_SYMBOL : ult::BOX_EMPTY_SYMBOL;
+                         renderer->drawString(box, false, this->getX() + 4, baselineY, m_fontSize, 
+                            !ult::useSelectionText ? defaultTextColor: (useClickTextColor ? clickTextColor : selectedTextColor));
+                    }
+
+                    // Scissor for text only
+                    s32 textStartX = m_flags.m_useLeftBox ? getX() + 28 : getX() + 19;
+                    
+                    renderer->enableScissoring(textStartX - 6, 97, m_maxWidth + (m_value.empty() ? 49 : 27), tsl::cfg::FramebufferHeight - 170);
                 #if IS_LAUNCHER_DIRECTIVE
-                    renderer->drawStringWithColoredSections(m_scrollText, false, specialSymbols, getX() + 19 - static_cast<s32>(m_scrollOffset), getY() + 45 - yOffset, 23,
+                    renderer->drawStringWithColoredSections(m_scrollText, false, specialSymbols, textStartX - static_cast<s32>(m_scrollOffset), baselineY, m_fontSize,
                         !ult::useSelectionText ? defaultTextColor: (useClickTextColor ? clickTextColor : selectedTextColor), starColor);
                 #else
-                    renderer->drawStringWithColoredSections(m_scrollText, false, specialSymbols, getX() + 19 - static_cast<s32>(m_scrollOffset), getY() + 45 - yOffset, 23,
+                    renderer->drawStringWithColoredSections(m_scrollText, false, specialSymbols, textStartX - static_cast<s32>(m_scrollOffset), baselineY, m_fontSize,
                         !ult::useSelectionText ? defaultTextColor: (useClickTextColor ? clickTextColor : selectedTextColor), textSeparatorColor);
                 #endif
                     renderer->disableScissoring();
                     handleScrolling();
                 } else {
                 #if IS_LAUNCHER_DIRECTIVE
-                    renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 19, getY() + 45 - yOffset, 23,
-                        m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor), starColor);
+                    if (m_flags.m_useLeftBox) {
+                        const std::string box = isChecked() ? ult::BOX_SOLID_SYMBOL : ult::BOX_EMPTY_SYMBOL;
+                        renderer->drawString(box, false, this->getX() + 4, baselineY, m_fontSize, m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor));
+                        renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 28, baselineY, m_fontSize,
+                            m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor), starColor);
+                    } else {
+                        renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 19, baselineY, m_fontSize,
+                            m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor), starColor);
+                    }
                 #else
-                    renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 19, getY() + 45 - yOffset, 23,
-                        m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor), textSeparatorColor);
+                    if (m_flags.m_useLeftBox) {
+                         const std::string box = isChecked() ? ult::BOX_SOLID_SYMBOL : ult::BOX_EMPTY_SYMBOL;
+                         renderer->drawString(box, false, this->getX() + 4, baselineY, m_fontSize, m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor));
+                         renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 28, baselineY, m_fontSize,
+                             m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor), textSeparatorColor);
+                    } else {
+                        renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 19, baselineY, m_fontSize,
+                             m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor), textSeparatorColor);
+                    }
                 #endif
                 }
             }
@@ -8248,31 +8538,37 @@ namespace tsl {
                 }
             }
                     
-            void drawValue(gfx::Renderer* renderer, s32 yOffset, bool useClickTextColor) {
-                const s32 xPosition = getX() + m_maxWidth + 47;
-                const s32 yPosition = getY() + 45 - yOffset-1;
-                static constexpr s32 fontSize = 20;
-            
-            #if IS_LAUNCHER_DIRECTIVE
+            void drawValue(gfx::Renderer* renderer, bool useClickTextColor, s32 overriddenBaseline = -1) {
+                const s32 offsetFromMaxWidth = m_flags.m_useLeftBox ? 47 : 30;
+                const s32 xPosition = getX() + m_maxWidth + offsetFromMaxWidth;
+
+                s32 yPosition;
+                if (overriddenBaseline != -1) {
+                    yPosition = overriddenBaseline - 1; // Align 20px font baseline with 23px font baseline
+                } else {
+                    const auto metrics = tsl::gfx::FontManager::getFontMetricsForCharacter('A', m_valueFontSize);
+                    yPosition = getY() + (static_cast<s32>(getHeight()) + metrics.ascent + metrics.descent) / 2;
+                }
+                
+                #if IS_LAUNCHER_DIRECTIVE
                 static bool lastRunningInterpreter = false;
                 const auto textColor = determineValueTextColor(useClickTextColor, lastRunningInterpreter);
-        
                 if (m_value != ult::INPROGRESS_SYMBOL) [[likely]] {
                     static const std::vector<std::string> specialChars = {ult::DIVIDER_SYMBOL};
-                    renderer->drawStringWithColoredSections(m_value, false, specialChars, xPosition, yPosition, fontSize, textColor, textSeparatorColor);
+                    renderer->drawStringWithColoredSections(m_value, false, specialChars, xPosition, yPosition, m_valueFontSize, textColor, textSeparatorColor);
                 } else {
-                    drawThrobber(renderer, xPosition, yPosition, fontSize, textColor);
+                    drawThrobber(renderer, xPosition, yPosition, m_valueFontSize, textColor);
                 }
                 lastRunningInterpreter = ult::runningInterpreter.load(std::memory_order_acquire);
-            #else
+                #else
                 const auto textColor = determineValueTextColor(useClickTextColor);
                 if (m_value != ult::INPROGRESS_SYMBOL) [[likely]] {
                     static const std::vector<std::string> specialChars = {ult::DIVIDER_SYMBOL};
-                    renderer->drawStringWithColoredSections(m_value, false, specialChars, xPosition, yPosition, fontSize, textColor, textSeparatorColor);
+                    renderer->drawStringWithColoredSections(m_value, false, specialChars, xPosition, yPosition, m_valueFontSize, textColor, textSeparatorColor);
                 } else {
-                    drawThrobber(renderer, xPosition, yPosition, fontSize, textColor);
+                    drawThrobber(renderer, xPosition, yPosition, m_valueFontSize, textColor);
                 }
-            #endif
+                #endif
             }
         
         #if IS_LAUNCHER_DIRECTIVE
@@ -8468,6 +8764,7 @@ namespace tsl {
                 m_hasColorOverrides = false;
                 clearValueColor();
             }
+
         
         protected:
             Color m_valueColorOverride;
@@ -8557,6 +8854,10 @@ namespace tsl {
                 return false;
             }
             
+            virtual inline bool isChecked() const override {
+                return this->m_state;
+            }
+
             /**
              * @brief Gets the current state of the toggle
              *

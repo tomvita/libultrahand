@@ -451,6 +451,8 @@ namespace ult {
     std::string SIMPLIFIED_CHINESE = "Simplified Chinese";
     std::string TRADITIONAL_CHINESE = "Traditional Chinese";
     std::string OVERLAYS = "Overlays"; //defined in libTesla now
+    std::string CHEATS = "Cheats";
+    std::string NOTES = "Notes";
     std::string OVERLAYS_ABBR = "Overlays";
     std::string OVERLAY = "Overlay";
     std::string HIDDEN_OVERLAYS = "Hidden Overlays";
@@ -556,7 +558,7 @@ namespace ult {
     std::string APP_SETTINGS = "App Settings";
     std::string ON_MAIN_MENU = "on Main Menu";
     std::string ON_A_COMMAND = "on a command";
-    std::string ON_OVERLAY_PACKAGE = "on overlay/package";
+    std::string ON_OVERLAY = "on Cheats";
     std::string FEATURES = "Features";
     std::string SWIPE_TO_OPEN = "Swipe to Open";
 
@@ -569,8 +571,8 @@ namespace ult {
     std::string LIBULTRAHAND_VERSIONS = "libultrahand Versions";
     std::string PACKAGE_TITLES = "Package Titles";
 
-    std::string ULTRAHAND_HAS_STARTED = "Ultrahand has started.";
-    std::string ULTRAHAND_HAS_RESTARTED = "Ultrahand has restarted.";
+    std::string ULTRAHAND_HAS_STARTED = "Breezehand has started.";
+    std::string ULTRAHAND_HAS_RESTARTED = "Breezehand has restarted.";
     std::string NEW_UPDATE_IS_AVAILABLE = "New update is available!";
     //std::string REBOOT_IS_REQUIRED = "Reboot is required.";
     //std::string HOLD_A_TO_DELETE = "Hold \uE0E0 to Delete";
@@ -681,6 +683,8 @@ namespace ult {
         DEFAULT_CHAR_WIDTH = "0.33";
         UNAVAILABLE_SELECTION = "Not available";
         OVERLAYS = "Overlays"; //defined in libTesla now
+        CHEATS = "Cheats";
+        NOTES = "Notes";
         OVERLAYS_ABBR = "Overlays";
         OVERLAY = "Overlay";
         HIDDEN_OVERLAYS = "Hidden Overlays";
@@ -799,7 +803,7 @@ namespace ult {
         APP_SETTINGS = "App Settings";
         ON_MAIN_MENU = "on Main Menu";
         ON_A_COMMAND = "on a command";
-        ON_OVERLAY_PACKAGE = "on overlay/package";
+        ON_OVERLAY = "on overlay";
         FEATURES = "Features";
         SWIPE_TO_OPEN = "Swipe to Open";
         //PROGRESS_ANIMATION = "Progress Animation";
@@ -814,8 +818,8 @@ namespace ult {
         PACKAGE_TITLES = "Package Titles";
         //PACKAGE_VERSIONS = "Package Versions";
 
-        ULTRAHAND_HAS_STARTED = "Ultrahand has started.";
-        ULTRAHAND_HAS_RESTARTED = "Ultrahand has reloaded.";
+        ULTRAHAND_HAS_STARTED = "Breezehand has started.";
+        ULTRAHAND_HAS_RESTARTED = "Breezehand has reloaded.";
         NEW_UPDATE_IS_AVAILABLE = "New update is available!";
         //REBOOT_IS_REQUIRED = "Reboot is required.";
         //HOLD_A_TO_DELETE = "Hold  to Delete";
@@ -910,6 +914,8 @@ namespace ult {
             {"SIMPLIFIED_CHINESE", &SIMPLIFIED_CHINESE},
             {"TRADITIONAL_CHINESE", &TRADITIONAL_CHINESE},
             {"OVERLAYS", &OVERLAYS},
+            {"CHEATS", &CHEATS},
+            {"NOTES", &NOTES},
             {"OVERLAYS_ABBR", &OVERLAYS_ABBR},
             {"OVERLAY", &OVERLAY},
             {"HIDDEN_OVERLAYS", &HIDDEN_OVERLAYS},
@@ -1015,7 +1021,7 @@ namespace ult {
             {"APP_SETTINGS", &APP_SETTINGS},
             {"ON_MAIN_MENU", &ON_MAIN_MENU},
             {"ON_A_COMMAND", &ON_A_COMMAND},
-            {"ON_OVERLAY_PACKAGE", &ON_OVERLAY_PACKAGE},
+            {"ON_OVERLAY", &ON_OVERLAY},
             {"FEATURES", &FEATURES},
             {"SWIPE_TO_OPEN", &SWIPE_TO_OPEN},
 
