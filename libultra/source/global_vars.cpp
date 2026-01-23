@@ -81,11 +81,11 @@ namespace ult {
     };
 
     // GitHub URLs
-    const std::string GITHUB_BASE_URL               = "https://github.com/ppkantorski/";
-    const std::string GITHUB_RAW_BASE_URL           = "https://raw.githubusercontent.com/ppkantorski/";
-    const std::string ULTRAHAND_REPO_URL            = GITHUB_BASE_URL + "Ultrahand-Overlay/";
-    const std::string INCLUDED_THEME_FOLDER_URL     = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/themes/";
-    const std::string LATEST_RELEASE_INFO_URL       = GITHUB_RAW_BASE_URL + "Ultrahand-Overlay/main/RELEASE.ini";
+    const std::string GITHUB_BASE_URL               = "https://github.com/tomvita/";
+    const std::string GITHUB_RAW_BASE_URL           = "https://raw.githubusercontent.com/tomvita/";
+    const std::string ULTRAHAND_REPO_URL            = GITHUB_BASE_URL + "Breezehand-Overlay/";
+    const std::string INCLUDED_THEME_FOLDER_URL     = "https://raw.githubusercontent.com/ppkantorski/Ultrahand-Overlay/main/themes/";
+    const std::string LATEST_RELEASE_INFO_URL       = GITHUB_RAW_BASE_URL + "Breezehand-Overlay/main/RELEASE.ini";
     const std::string LATEST_UPDATER_INI_URL        = ULTRAHAND_REPO_URL + "releases/latest/download/update.ini";
     //const std::string NX_OVLLOADER_ZIP_URL          = GITHUB_BASE_URL + "nx-ovlloader/releases/latest/download/nx-ovlloader.zip";
     //const std::string NX_OVLLOADER_PLUS_ZIP_URL     = GITHUB_BASE_URL + "nx-ovlloader/releases/latest/download/nx-ovlloader+.zip";
