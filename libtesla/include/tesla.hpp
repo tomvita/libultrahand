@@ -4073,7 +4073,13 @@ namespace tsl {
                         TSL_R_TRY(plGetSharedFontByType(&localFontData, PlSharedFontType_KO));
                         break;
                     default:
-                        this->m_hasLocalFont = false;
+                        // Fallback: Try Chinese Simplified by default if local font isn't explicitly set by region,
+                        // this ensures Simplified characters are visible even on English systems.
+                        if (R_SUCCEEDED(plGetSharedFontByType(&localFontData, PlSharedFontType_ChineseSimplified))) {
+                            this->m_hasLocalFont = true;
+                        } else {
+                            this->m_hasLocalFont = false;
+                        }
                         break;
                     }
                     
