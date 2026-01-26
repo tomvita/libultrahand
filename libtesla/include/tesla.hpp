@@ -13241,7 +13241,7 @@ namespace tsl {
     
     namespace impl {
         static constexpr const char* TESLA_CONFIG_FILE = "/config/tesla/config.ini";
-        static constexpr const char* ULTRAHAND_CONFIG_FILE = "/config/ultrahand/config.ini";
+        static constexpr const char* BREEZEHAND_CONFIG_FILE = "/config/breezehand/config.ini";
         
         /**
          * @brief Data shared between the different ult::renderThreads
@@ -13268,7 +13268,7 @@ namespace tsl {
          *
          */
         static void parseOverlaySettings() {
-            hlp::ini::IniData parsedConfig = hlp::ini::readOverlaySettings(ULTRAHAND_CONFIG_FILE);
+            hlp::ini::IniData parsedConfig = hlp::ini::readOverlaySettings(BREEZEHAND_CONFIG_FILE);
             
             u64 decodedKeys = hlp::comboStringToKeys(parsedConfig[ult::ULTRAHAND_PROJECT_NAME][ult::KEY_COMBO_STR]); // CUSTOM MODIFICATION
             if (decodedKeys)
@@ -13359,7 +13359,7 @@ namespace tsl {
                 { ult::ULTRAHAND_PROJECT_NAME, { // CUSTOM MODIFICATION
                     { ult::KEY_COMBO_STR , tsl::hlp::keysToComboString(keys) }
                 }}
-            }, ULTRAHAND_CONFIG_FILE);
+            }, BREEZEHAND_CONFIG_FILE);
         }
         
         static auto currentUnderscanPixels = std::make_pair(0, 0);
