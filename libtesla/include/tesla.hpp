@@ -7967,7 +7967,8 @@ namespace tsl {
 
                     std::vector<std::string> noteLines;
                     u16 numNoteLines = 0; u16 noteLineHeight = 0; u8 noteFontSize = m_fontSize - 3;
-                    if ( (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty()) {
+                    const bool drawNotes = (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty();
+                    if (drawNotes) {
                         noteLineHeight = noteFontSize + 3;
                         std::string currentLine; size_t pos = 0;
                         while (pos < m_note.length()) {
@@ -8011,10 +8012,50 @@ namespace tsl {
 
                     if (!m_value.empty()) drawValue(renderer, useClickTextColor, firstBaselineY);
                 } else {
-                    drawTruncatedText(renderer, useClickTextColor, specialChars);
-                    const auto m = tsl::gfx::FontManager::getFontMetricsForCharacter('A', m_fontSize);
-                    const s32 B = getY() + (static_cast<s32>(getHeight()) + m.ascent + m.descent) / 2;
-                    if (!m_value.empty()) drawValue(renderer, useClickTextColor, B);
+                    const Color textColor = m_focused
+                        ? (ult::useSelectionText ? (useClickTextColor ? clickTextColor : selectedTextColor) : (m_flags.m_hasCustomTextColor ? m_customTextColor : defaultTextColor))
+                        : (m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor));
+
+                    const auto metrics = tsl::gfx::FontManager::getFontMetricsForCharacter('A', m_fontSize);
+                    const s32 lineHeight = m_fontSize + 4;
+
+                    std::vector<std::string> noteLines;
+                    u16 numNoteLines = 0; u16 noteLineHeight = 0; u8 noteFontSize = m_fontSize - 3;
+                    const bool drawNotes = (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty();
+                    if (drawNotes) {
+                        noteLineHeight = noteFontSize + 3;
+                        std::string currentLine; size_t pos = 0;
+                        while (pos < m_note.length()) {
+                            size_t nextSpace = m_note.find(' ', pos);
+                            if (nextSpace == std::string::npos) nextSpace = m_note.length();
+                            std::string word = m_note.substr(pos, nextSpace - pos);
+                            if (nextSpace < m_note.length()) word += ' ';
+                            if (renderer->getTextDimensions(currentLine + word, false, noteFontSize).first > m_maxWidth && !currentLine.empty()) {
+                                noteLines.push_back(currentLine); currentLine = word;
+                            } else currentLine += word;
+                            pos = nextSpace + (nextSpace < m_note.length() ? 1 : 0);
+                        }
+                        if (!currentLine.empty()) noteLines.push_back(currentLine);
+                        numNoteLines = noteLines.size();
+                    }
+
+                    const s32 totalNoteHeight = (numNoteLines > 0 ? (numNoteLines * noteLineHeight + 8) : 0);
+                    const s32 totalTextHeight = totalNoteHeight + (metrics.ascent - metrics.descent);
+                    const s32 firstBaselineY = getY() + (static_cast<s32>(getHeight()) - (totalNoteHeight + metrics.ascent - metrics.descent)) / 2 + metrics.ascent;
+                    
+                    drawTruncatedText(renderer, useClickTextColor, specialChars, firstBaselineY);
+                    
+                    if (numNoteLines > 0) {
+                        s32 noteY = firstBaselineY + 8 + noteLineHeight;
+                        s32 textStartX = m_flags.m_useLeftBox ? getX() + 28 : getX() + 19;
+                        const Color noteColor = m_focused ? selectedTextColor : defaultTextColor;
+                        for (const auto& line : noteLines) {
+                            renderer->drawString(line, false, textStartX, noteY, noteFontSize, noteColor);
+                            noteY += noteLineHeight;
+                        }
+                    }
+
+                    if (!m_value.empty()) drawValue(renderer, useClickTextColor, firstBaselineY);
                 }
             }
         
@@ -8408,7 +8449,6 @@ namespace tsl {
                     
                     m_calculatedHeight = std::max((int)m_listItemHeight, (int)(labelHeight + noteHeight + 10));
                 } else {
-                    m_calculatedHeight = m_listItemHeight;
                     const u16 textW = renderer->getTextDimensions(m_text_clean, false, m_fontSize).first;
                     m_flags.m_truncated = m_flags.m_useScrolling && (textW > m_maxWidth + 20);
                     if (m_flags.m_truncated) {
@@ -8419,13 +8459,35 @@ namespace tsl {
                     } else {
                         m_textWidth = textW;
                     }
+
+                    auto countLines = [&](const std::string& text, u8 fSize) {
+                        if (text.empty()) return 0;
+                        int lines = 0; std::string currLine; size_t pos = 0;
+                        while (pos < text.length()) {
+                            size_t sp = text.find(' ', pos);
+                            if (sp == std::string::npos) sp = text.length();
+                            std::string w = text.substr(pos, sp - pos);
+                            if (sp < text.length()) w += ' ';
+                            if (renderer->getTextDimensions(currLine + w, false, fSize).first > m_maxWidth && !currLine.empty()) {
+                                lines++; currLine = w;
+                            } else currLine += w;
+                            pos = sp + (sp < text.length() ? 1 : 0);
+                        }
+                        if (!currLine.empty()) lines++;
+                        return lines;
+                    };
+                    const int nNote = ( (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty()) ? countLines(m_note, m_fontSize - 3) : 0;
+                    const u16 noteLineHeight = (m_fontSize - 3) + 3;
+                    const u16 noteHeight = nNote > 0 ? (nNote * noteLineHeight + 8) : 0;
+
+                    m_calculatedHeight = std::max((int)m_listItemHeight, (int)(noteHeight + (m_fontSize + 4) + 10));
                 }
             }
         
-            void drawTruncatedText(gfx::Renderer* renderer, bool useClickTextColor, const std::vector<std::string>& specialSymbols = {}) {
+            void drawTruncatedText(gfx::Renderer* renderer, bool useClickTextColor, const std::vector<std::string>& specialSymbols = {}, s32 overriddenBaseline = -1) {
                 // Universal baseline formula WITHOUT yOffset for perfect centering
                 const auto metrics = tsl::gfx::FontManager::getFontMetricsForCharacter('A', m_fontSize);
-                const s32 baselineY = getY() + (static_cast<s32>(getHeight()) + metrics.ascent + metrics.descent) / 2;
+                const s32 baselineY = (overriddenBaseline != -1) ? overriddenBaseline : (getY() + (static_cast<s32>(getHeight()) + metrics.ascent + metrics.descent) / 2);
 
                 if (m_focused) {
                     // Draw Left Box if enabled
