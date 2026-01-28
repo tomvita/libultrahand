@@ -1258,8 +1258,8 @@ namespace tsl {
             inline static std::unordered_map<u64, FontMetrics> s_fontMetricsCache;
             
             // Add cache size limits
-            static constexpr size_t MAX_CACHE_SIZE = 600;
-            static constexpr size_t CLEANUP_THRESHOLD = 500;
+            static constexpr size_t MAX_CACHE_SIZE = 1200;
+            static constexpr size_t CLEANUP_THRESHOLD = 1000;
             static constexpr size_t MAX_NOTIFICATION_CACHE_SIZE = 200; // Separate limit for notifications
             
             // font handles & state
@@ -8436,20 +8436,61 @@ namespace tsl {
                 else m_maxWidth = width - renderer->getTextDimensions(m_value, false, 20).first - 66;
                 
                 if (m_flags.m_useLeftBox || m_flags.m_useWrapping) {
-                    auto countLines = [&](const std::string& text, u8 fSize) {
+                    auto countLines = [&](const std::string& text, u8 fSize) -> int {
                         if (text.empty()) return 0;
-                        int lines = 0; std::string currLine; size_t pos = 0;
-                        while (pos < text.length()) {
-                            size_t sp = text.find(' ', pos);
-                            if (sp == std::string::npos) sp = text.length();
-                            std::string w = text.substr(pos, sp - pos);
-                            if (sp < text.length()) w += ' ';
-                            if (renderer->getTextDimensions(currLine + w, false, fSize).first > m_maxWidth && !currLine.empty()) {
-                                lines++; currLine = w;
-                            } else currLine += w;
-                            pos = sp + (sp < text.length() ? 1 : 0);
+                        int lines = 1;
+                        s32 currX = 0;
+                        s32 xAdvanceSpace = 0;
+                        auto glyphSpace = tsl::gfx::FontManager::getOrCreateGlyph(' ', false, fSize);
+                        if (glyphSpace) xAdvanceSpace = static_cast<s32>(glyphSpace->xAdvance * glyphSpace->currFontSize);
+
+                        s32 currentWordWidth = 0;
+                        bool inWord = false;
+
+                        for (size_t i = 0; i < text.length(); ) {
+                            u32 codepoint;
+                            ssize_t len = decode_utf8(&codepoint, reinterpret_cast<const u8*>(&text[i]));
+                            if (len <= 0) break;
+                            i += len;
+
+                            if (codepoint == ' ' || codepoint == '\n') {
+                                if (inWord) {
+                                    if (currX + currentWordWidth > m_maxWidth && currX > 0) {
+                                        lines++;
+                                        currX = currentWordWidth;
+                                    } else {
+                                        currX += currentWordWidth;
+                                    }
+                                    currentWordWidth = 0;
+                                    inWord = false;
+                                }
+
+                                if (codepoint == ' ') {
+                                    if (currX + xAdvanceSpace > m_maxWidth) {
+                                        lines++;
+                                        currX = 0;
+                                    } else {
+                                        currX += xAdvanceSpace;
+                                    }
+                                } else { // '\n'
+                                    lines++;
+                                    currX = 0;
+                                }
+                            } else {
+                                inWord = true;
+                                auto glyph = tsl::gfx::FontManager::getOrCreateGlyph(codepoint, false, fSize);
+                                if (glyph) {
+                                    currentWordWidth += static_cast<s32>(glyph->xAdvance * glyph->currFontSize);
+                                }
+                            }
                         }
-                        if (!currLine.empty()) lines++;
+
+                        if (inWord) {
+                            if (currX + currentWordWidth > m_maxWidth && currX > 0) {
+                                lines++;
+                            }
+                        }
+
                         return lines;
                     };
                     int nLabel = countLines(m_text_clean, m_fontSize);
@@ -8473,20 +8514,61 @@ namespace tsl {
                         m_textWidth = textW;
                     }
 
-                    auto countLines = [&](const std::string& text, u8 fSize) {
+                    auto countLines = [&](const std::string& text, u8 fSize) -> int {
                         if (text.empty()) return 0;
-                        int lines = 0; std::string currLine; size_t pos = 0;
-                        while (pos < text.length()) {
-                            size_t sp = text.find(' ', pos);
-                            if (sp == std::string::npos) sp = text.length();
-                            std::string w = text.substr(pos, sp - pos);
-                            if (sp < text.length()) w += ' ';
-                            if (renderer->getTextDimensions(currLine + w, false, fSize).first > m_maxWidth && !currLine.empty()) {
-                                lines++; currLine = w;
-                            } else currLine += w;
-                            pos = sp + (sp < text.length() ? 1 : 0);
+                        int lines = 1;
+                        s32 currX = 0;
+                        s32 xAdvanceSpace = 0;
+                        auto glyphSpace = tsl::gfx::FontManager::getOrCreateGlyph(' ', false, fSize);
+                        if (glyphSpace) xAdvanceSpace = static_cast<s32>(glyphSpace->xAdvance * glyphSpace->currFontSize);
+
+                        s32 currentWordWidth = 0;
+                        bool inWord = false;
+
+                        for (size_t i = 0; i < text.length(); ) {
+                            u32 codepoint;
+                            ssize_t len = decode_utf8(&codepoint, reinterpret_cast<const u8*>(&text[i]));
+                            if (len <= 0) break;
+                            i += len;
+
+                            if (codepoint == ' ' || codepoint == '\n') {
+                                if (inWord) {
+                                    if (currX + currentWordWidth > m_maxWidth && currX > 0) {
+                                        lines++;
+                                        currX = currentWordWidth;
+                                    } else {
+                                        currX += currentWordWidth;
+                                    }
+                                    currentWordWidth = 0;
+                                    inWord = false;
+                                }
+
+                                if (codepoint == ' ') {
+                                    if (currX + xAdvanceSpace > m_maxWidth) {
+                                        lines++;
+                                        currX = 0;
+                                    } else {
+                                        currX += xAdvanceSpace;
+                                    }
+                                } else { // '\n'
+                                    lines++;
+                                    currX = 0;
+                                }
+                            } else {
+                                inWord = true;
+                                auto glyph = tsl::gfx::FontManager::getOrCreateGlyph(codepoint, false, fSize);
+                                if (glyph) {
+                                    currentWordWidth += static_cast<s32>(glyph->xAdvance * glyph->currFontSize);
+                                }
+                            }
                         }
-                        if (!currLine.empty()) lines++;
+
+                        if (inWord) {
+                            if (currX + currentWordWidth > m_maxWidth && currX > 0) {
+                                lines++;
+                            }
+                        }
+
                         return lines;
                     };
                     const int nNote = ( (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty()) ? countLines(m_note, m_fontSize - 3) : 0;
