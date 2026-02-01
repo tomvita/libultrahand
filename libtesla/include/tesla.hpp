@@ -6014,6 +6014,22 @@ namespace tsl {
                 purgePendingItems();
                 clearItems();
             }
+
+            u32 getFocusedIndex() const {
+                return m_focusedIndex;
+            }
+
+            const std::vector<Element*>& getItems() const {
+                return m_items;
+            }
+
+            void recalculateLayout() {
+                m_listHeight = BOTTOM_PADDING;
+                for (Element* entry : m_items) {
+                    m_listHeight += entry->getHeight();
+                }
+                invalidate();
+            }
             
                                                             
             virtual void draw(gfx::Renderer* renderer) override {
