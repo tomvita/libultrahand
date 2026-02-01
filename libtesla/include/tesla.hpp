@@ -6241,8 +6241,12 @@ namespace tsl {
                 if (!inBounds(currX, currY)) return false;
                 
                 // Forward to children first
-                for (Element* item : m_items) {
-                    if (item->onTouch(event, currX, currY, prevX, prevY, initialX, initialY)) {
+                for (size_t i = 0; i < m_items.size(); i++) {
+                    if (m_items[i]->onTouch(event, currX, currY, prevX, prevY, initialX, initialY)) {
+                        if (event == TouchEvent::Touch || event == TouchEvent::Release) {
+                            m_focusedIndex = i;
+                            updateScrollOffset();
+                        }
                         return true;
                     }
                 }
