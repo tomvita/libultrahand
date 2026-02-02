@@ -46,8 +46,8 @@ namespace ult {
     // Project names
     CONSTEXPR_STRING std::string ULTRAHAND_PROJECT_NAME         = "breezehand";
     CONSTEXPR_STRING std::string CAPITAL_ULTRAHAND_PROJECT_NAME = "Breezehand";
-    CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_1           = "Breez";
-    CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_2           = "hand";
+    CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_1           = "Breeze";
+    CONSTEXPR_STRING std::string SPLIT_PROJECT_NAME_2           = "";
 
     // Paths
     const std::string SETTINGS_PATH               = BASE_CONFIG_PATH;
