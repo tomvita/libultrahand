@@ -479,6 +479,9 @@ namespace ult {
     extern std::string ON_MAIN_MENU;
     extern std::string ON_A_COMMAND;
     extern std::string ON_OVERLAY;
+    extern std::string EDIT_CHEAT;
+    extern std::string FONT_SIZE_INCREASE;
+    extern std::string FONT_SIZE_DECREASE;
     extern std::string FEATURES;
     extern std::string SWIPE_TO_OPEN;
 

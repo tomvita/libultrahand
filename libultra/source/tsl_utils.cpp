@@ -559,6 +559,9 @@ namespace ult {
     std::string ON_MAIN_MENU = "on Main Menu";
     std::string ON_A_COMMAND = "on a command";
     std::string ON_OVERLAY = "on Cheats";
+    std::string EDIT_CHEAT = "Edit Cheat";
+    std::string FONT_SIZE_INCREASE = "Font size increase";
+    std::string FONT_SIZE_DECREASE = "Font size decrease";
     std::string FEATURES = "Features";
     std::string SWIPE_TO_OPEN = "Swipe to Open";
 
@@ -804,6 +807,9 @@ namespace ult {
         ON_MAIN_MENU = "on Main Menu";
         ON_A_COMMAND = "on a command";
         ON_OVERLAY = "on overlay";
+        EDIT_CHEAT = "Edit Cheat";
+        FONT_SIZE_INCREASE = "Font size increase";
+        FONT_SIZE_DECREASE = "Font size decrease";
         FEATURES = "Features";
         SWIPE_TO_OPEN = "Swipe to Open";
         //PROGRESS_ANIMATION = "Progress Animation";
@@ -1022,6 +1028,9 @@ namespace ult {
             {"ON_MAIN_MENU", &ON_MAIN_MENU},
             {"ON_A_COMMAND", &ON_A_COMMAND},
             {"ON_OVERLAY", &ON_OVERLAY},
+            {"EDIT_CHEAT", &EDIT_CHEAT},
+            {"FONT_SIZE_INCREASE", &FONT_SIZE_INCREASE},
+            {"FONT_SIZE_DECREASE", &FONT_SIZE_DECREASE},
             {"FEATURES", &FEATURES},
             {"SWIPE_TO_OPEN", &SWIPE_TO_OPEN},
 
