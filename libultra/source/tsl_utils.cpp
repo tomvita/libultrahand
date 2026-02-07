@@ -250,6 +250,9 @@ namespace ult {
 
     
     std::string lastTitleID;
+    extern const std::string DIVIDER_SYMBOL;
+    extern const std::string WARNING_SYMBOL;
+    extern const std::string NOTIFY_HEADER;
     std::atomic<bool> resetForegroundCheck(false); // initialize as true
 
 
@@ -600,6 +603,10 @@ namespace ult {
     std::string INCOMPATIBLE_WARNING = "Incompatible on AMS v1.10+";
     std::string SYSTEM_RAM = "System RAM";
     std::string FREE = "free";
+    std::string INSUFFICIENT_MEMORY = "Insufficient Memory";
+    std::string REQUIRED_MEMORY = "Required";
+    std::string CURRENT_MEMORY = "Current";
+    std::string MEMORY_WARNING = "Memory Warning";
 
     std::string DEFAULT_CHAR_WIDTH = "0.33";
     std::string UNAVAILABLE_SELECTION = "Not available";
@@ -1067,7 +1074,10 @@ namespace ult {
 
             {"SYSTEM_RAM", &SYSTEM_RAM},
             {"FREE", &FREE},
-            
+            {"INSUFFICIENT_MEMORY", &INSUFFICIENT_MEMORY},
+            {"REQUIRED_MEMORY", &REQUIRED_MEMORY},
+            {"CURRENT_MEMORY", &CURRENT_MEMORY},
+            {"MEMORY_WARNING", &MEMORY_WARNING},
             {"DEFAULT_CHAR_WIDTH", &DEFAULT_CHAR_WIDTH},
             {"UNAVAILABLE_SELECTION", &UNAVAILABLE_SELECTION},
 

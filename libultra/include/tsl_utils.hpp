@@ -440,6 +440,10 @@ namespace ult {
 
     extern std::string OVERLAY_MEMORY;
     extern std::string NOT_ENOUGH_MEMORY;
+    extern std::string INSUFFICIENT_MEMORY;
+    extern std::string REQUIRED_MEMORY;
+    extern std::string CURRENT_MEMORY;
+    extern std::string MEMORY_WARNING;
     extern std::string WALLPAPER_SUPPORT_DISABLED;
     extern std::string SOUND_SUPPORT_DISABLED;
     extern std::string WALLPAPER_SUPPORT_ENABLED;
