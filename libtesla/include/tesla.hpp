@@ -7794,8 +7794,13 @@ namespace tsl {
             u64 m_shortHoldKey = KEY_Y;
             u64 m_longHoldKey = KEY_X;
 
+            static constexpr u16 applyItemGapScale(u16 baseHeight) {
+                return static_cast<u16>((static_cast<u32>(baseHeight) * 130 + 99) / 100);
+            }
+
             ListItem(const std::string& text, const std::string& value = "", bool isMini = false)
-                : Element(), m_text(text), m_value(value), m_listItemHeight(isMini ? tsl::style::MiniListItemDefaultHeight : tsl::style::ListItemDefaultHeight) {
+                : Element(), m_text(text), m_value(value),
+                  m_listItemHeight(applyItemGapScale(isMini ? tsl::style::MiniListItemDefaultHeight : tsl::style::ListItemDefaultHeight)) {
                 m_isItem = true;
                 m_flags.m_useClickAnimation = true;
                 m_text_clean = m_text;
@@ -7944,6 +7949,15 @@ namespace tsl {
             virtual void draw(gfx::Renderer *renderer) override {
                 const bool useClickTextColor = m_flags.m_touched && Element::getInputMode() == InputMode::Touch && ult::touchInBounds;
                 auto drawFunc = ult::expandedMemory ? &gfx::Renderer::drawRectMultiThreaded : &gfx::Renderer::drawRect;
+                const s32 boxX = 4;
+                const s32 unboxedTextPadding = std::max<s32>(10, (static_cast<s32>(m_fontSize) * 5) / 6);
+                const s32 boxToTextGap = std::max<s32>(14, (static_cast<s32>(m_fontSize) * 13) / 10);
+                const s32 noteBlockPadding = std::max<s32>(4, static_cast<s32>(m_fontSize) / 3);
+                const bool notesCurrentlyVisible = ((ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty());
+                if (m_lastNotesVisible != notesCurrentlyVisible) {
+                    m_lastNotesVisible = notesCurrentlyVisible;
+                    m_calculatedHeight = 0;
+                }
                 
                 if (useClickTextColor && !m_isTouchHolding) [[unlikely]] {
                     (renderer->*drawFunc)(this->getX() + 4, this->getY(), this->getWidth() - 8, this->getHeight(), aWithOpacity(clickColor));
@@ -7959,7 +7973,7 @@ namespace tsl {
                 #endif
 
                 const s16 yOffset = ((tsl::style::ListItemDefaultHeight - m_listItemHeight) >> 1) + 1;
-                if (!m_maxWidth) calculateWidths(renderer);
+                if (!m_maxWidth || m_calculatedHeight == 0) calculateWidths(renderer);
         
                 const float topBound = this->getTopBound();
                 const float bottomBound = this->getBottomBound();
@@ -8018,24 +8032,24 @@ namespace tsl {
                         numNoteLines = noteLines.size();
                     }
 
-                    const s32 totalNoteHeight = (numNoteLines > 0 ? (numNoteLines * noteLineHeight + 8) : 0);
+                    const s32 totalNoteHeight = (numNoteLines > 0 ? (numNoteLines * noteLineHeight + noteBlockPadding) : 0);
                     const s32 totalTextHeight = (labelLines.size() - 1) * lineHeight + totalNoteHeight + (metrics.ascent - metrics.descent);
                     const s32 firstBaselineY = getY() + (static_cast<s32>(getHeight()) - totalTextHeight) / 2 + metrics.ascent;
 
                     if (m_flags.m_useLeftBox) {
                         const std::string box = isChecked() ? ult::BOX_SOLID_SYMBOL : ult::BOX_EMPTY_SYMBOL;
-                        renderer->drawString(box, false, this->getX() + 4, firstBaselineY, m_fontSize, textColor);
+                        renderer->drawString(box, false, this->getX() + boxX, firstBaselineY, m_fontSize, textColor);
                     }
 
                     s32 currentY = firstBaselineY;
-                    s32 textStartX = m_flags.m_useLeftBox ? getX() + 28 : getX() + 19;
+                    s32 textStartX = m_flags.m_useLeftBox ? getX() + boxX + boxToTextGap : getX() + unboxedTextPadding;
                     for (const auto& line : labelLines) {
                         renderer->drawStringWithColoredSections(line, false, specialChars, textStartX, currentY, m_fontSize, textColor, m_focused ? starColor : selectionStarColor);
                         currentY += lineHeight;
                     }
 
                     if (numNoteLines > 0) {
-                        currentY = currentY - lineHeight + 8 + noteLineHeight;
+                        currentY = currentY - lineHeight + noteBlockPadding + noteLineHeight;
                         const Color noteColor = m_focused ? selectedTextColor : defaultTextColor;
                         for (const auto& line : noteLines) {
                             renderer->drawString(line, false, textStartX, currentY, noteFontSize, noteColor);
@@ -8072,15 +8086,15 @@ namespace tsl {
                         numNoteLines = noteLines.size();
                     }
 
-                    const s32 totalNoteHeight = (numNoteLines > 0 ? (numNoteLines * noteLineHeight + 8) : 0);
+                    const s32 totalNoteHeight = (numNoteLines > 0 ? (numNoteLines * noteLineHeight + noteBlockPadding) : 0);
                     const s32 totalTextHeight = totalNoteHeight + (metrics.ascent - metrics.descent);
                     const s32 firstBaselineY = getY() + (static_cast<s32>(getHeight()) - (totalNoteHeight + metrics.ascent - metrics.descent)) / 2 + metrics.ascent;
                     
                     drawTruncatedText(renderer, useClickTextColor, specialChars, firstBaselineY);
                     
                     if (numNoteLines > 0) {
-                        s32 noteY = firstBaselineY + 8 + noteLineHeight;
-                        s32 textStartX = m_flags.m_useLeftBox ? getX() + 28 : getX() + 19;
+                        s32 noteY = firstBaselineY + noteBlockPadding + noteLineHeight;
+                        s32 textStartX = m_flags.m_useLeftBox ? getX() + boxX + boxToTextGap : getX() + unboxedTextPadding;
                         const Color noteColor = m_focused ? selectedTextColor : defaultTextColor;
                         for (const auto& line : noteLines) {
                             renderer->drawString(line, false, textStartX, noteY, noteFontSize, noteColor);
@@ -8304,6 +8318,11 @@ namespace tsl {
             }
 
             virtual s32 getHeight() override {
+                const bool notesCurrentlyVisible = ((ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty());
+                if (m_lastNotesVisible != notesCurrentlyVisible) {
+                    m_lastNotesVisible = notesCurrentlyVisible;
+                    m_calculatedHeight = 0;
+                }
                 if (m_calculatedHeight == 0) [[unlikely]] {
                     calculateWidths(&tsl::gfx::Renderer::get());
                 }
@@ -8351,7 +8370,7 @@ namespace tsl {
             inline void setFontSize(u8 size) {
                 this->m_fontSize = size;
                 // Ultra-Compact Tesla: reduce offset to 12 for ~35px standard height
-                this->m_listItemHeight = size + 12; 
+                this->m_listItemHeight = applyItemGapScale(static_cast<u16>(size + 12));
                 this->m_calculatedHeight = 0; // Force recalculation on next layout/draw
             }
 
@@ -8369,6 +8388,7 @@ namespace tsl {
             std::string m_ellipsisText;
             u16 m_listItemHeight;  // Changed from u32 to u16
             mutable u16 m_calculatedHeight = 0;  // Dynamic height based on content
+            mutable bool m_lastNotesVisible = false;
             u8 m_fontSize = 23;
             u8 m_valueFontSize = 20;
 
@@ -8451,6 +8471,8 @@ namespace tsl {
         
             void calculateWidths(gfx::Renderer* renderer) {
                 const u16 width = this->getWidth();
+                const u16 noteBlockPadding = std::max<int>(4, static_cast<int>(m_fontSize) / 3);
+                const u16 verticalPadding = std::max<int>(6, static_cast<int>(m_fontSize) / 2);
                 // Match original libtesla width calculation
                 if (m_value.empty()) m_maxWidth = width - 62;
                 else m_maxWidth = width - renderer->getTextDimensions(m_value, false, 20).first - 66;
@@ -8458,59 +8480,28 @@ namespace tsl {
                 if (m_flags.m_useLeftBox || m_flags.m_useWrapping) {
                     auto countLines = [&](const std::string& text, u8 fSize) -> int {
                         if (text.empty()) return 0;
-                        int lines = 1;
-                        s32 currX = 0;
-                        s32 xAdvanceSpace = 0;
-                        auto glyphSpace = tsl::gfx::FontManager::getOrCreateGlyph(' ', false, fSize);
-                        if (glyphSpace) xAdvanceSpace = static_cast<s32>(glyphSpace->xAdvance * glyphSpace->currFontSize);
+                        int lines = 0;
+                        std::string currentLine;
+                        size_t pos = 0;
 
-                        s32 currentWordWidth = 0;
-                        bool inWord = false;
+                        while (pos < text.length()) {
+                            size_t nextSpace = text.find(' ', pos);
+                            if (nextSpace == std::string::npos) nextSpace = text.length();
+                            std::string word = text.substr(pos, nextSpace - pos);
+                            if (nextSpace < text.length()) word += ' ';
 
-                        for (size_t i = 0; i < text.length(); ) {
-                            u32 codepoint;
-                            ssize_t len = decode_utf8(&codepoint, reinterpret_cast<const u8*>(&text[i]));
-                            if (len <= 0) break;
-                            i += len;
-
-                            if (codepoint == ' ' || codepoint == '\n') {
-                                if (inWord) {
-                                    if (currX + currentWordWidth > m_maxWidth && currX > 0) {
-                                        lines++;
-                                        currX = currentWordWidth;
-                                    } else {
-                                        currX += currentWordWidth;
-                                    }
-                                    currentWordWidth = 0;
-                                    inWord = false;
-                                }
-
-                                if (codepoint == ' ') {
-                                    if (currX + xAdvanceSpace > m_maxWidth) {
-                                        lines++;
-                                        currX = 0;
-                                    } else {
-                                        currX += xAdvanceSpace;
-                                    }
-                                } else { // '\n'
-                                    lines++;
-                                    currX = 0;
-                                }
-                            } else {
-                                inWord = true;
-                                auto glyph = tsl::gfx::FontManager::getOrCreateGlyph(codepoint, false, fSize);
-                                if (glyph) {
-                                    currentWordWidth += static_cast<s32>(glyph->xAdvance * glyph->currFontSize);
-                                }
-                            }
-                        }
-
-                        if (inWord) {
-                            if (currX + currentWordWidth > m_maxWidth && currX > 0) {
+                            if (renderer->getTextDimensions(currentLine + word, false, fSize).first > m_maxWidth &&
+                                !currentLine.empty()) {
                                 lines++;
+                                currentLine = word;
+                            } else {
+                                currentLine += word;
                             }
+
+                            pos = nextSpace + (nextSpace < text.length() ? 1 : 0);
                         }
 
+                        if (!currentLine.empty()) lines++;
                         return lines;
                     };
                     int nLabel = countLines(m_text_clean, m_fontSize);
@@ -8519,9 +8510,14 @@ namespace tsl {
                     const u16 lineHeight = m_fontSize + 4;
                     const u16 noteLineHeight = (m_fontSize - 3) + 3;
                     const u16 labelHeight = nLabel * lineHeight;
-                    const u16 noteHeight = nNote > 0 ? (nNote * noteLineHeight + 8) : 0;
-                    
-                    m_calculatedHeight = std::max((int)m_listItemHeight, (int)(labelHeight + noteHeight + 10));
+                    const u16 noteHeight = nNote > 0 ? (nNote * noteLineHeight + noteBlockPadding) : 0;
+
+                    if (nLabel <= 1 && nNote == 0) {
+                        // Keep single-line rows at the base height so text stays visually centered in highlight.
+                        m_calculatedHeight = m_listItemHeight;
+                    } else {
+                        m_calculatedHeight = std::max((int)m_listItemHeight, (int)(labelHeight + noteHeight + verticalPadding));
+                    }
                 } else {
                     const u16 textW = renderer->getTextDimensions(m_text_clean, false, m_fontSize).first;
                     m_flags.m_truncated = m_flags.m_useScrolling && (textW > m_maxWidth + 20);
@@ -8536,66 +8532,39 @@ namespace tsl {
 
                     auto countLines = [&](const std::string& text, u8 fSize) -> int {
                         if (text.empty()) return 0;
-                        int lines = 1;
-                        s32 currX = 0;
-                        s32 xAdvanceSpace = 0;
-                        auto glyphSpace = tsl::gfx::FontManager::getOrCreateGlyph(' ', false, fSize);
-                        if (glyphSpace) xAdvanceSpace = static_cast<s32>(glyphSpace->xAdvance * glyphSpace->currFontSize);
+                        int lines = 0;
+                        std::string currentLine;
+                        size_t pos = 0;
 
-                        s32 currentWordWidth = 0;
-                        bool inWord = false;
+                        while (pos < text.length()) {
+                            size_t nextSpace = text.find(' ', pos);
+                            if (nextSpace == std::string::npos) nextSpace = text.length();
+                            std::string word = text.substr(pos, nextSpace - pos);
+                            if (nextSpace < text.length()) word += ' ';
 
-                        for (size_t i = 0; i < text.length(); ) {
-                            u32 codepoint;
-                            ssize_t len = decode_utf8(&codepoint, reinterpret_cast<const u8*>(&text[i]));
-                            if (len <= 0) break;
-                            i += len;
-
-                            if (codepoint == ' ' || codepoint == '\n') {
-                                if (inWord) {
-                                    if (currX + currentWordWidth > m_maxWidth && currX > 0) {
-                                        lines++;
-                                        currX = currentWordWidth;
-                                    } else {
-                                        currX += currentWordWidth;
-                                    }
-                                    currentWordWidth = 0;
-                                    inWord = false;
-                                }
-
-                                if (codepoint == ' ') {
-                                    if (currX + xAdvanceSpace > m_maxWidth) {
-                                        lines++;
-                                        currX = 0;
-                                    } else {
-                                        currX += xAdvanceSpace;
-                                    }
-                                } else { // '\n'
-                                    lines++;
-                                    currX = 0;
-                                }
-                            } else {
-                                inWord = true;
-                                auto glyph = tsl::gfx::FontManager::getOrCreateGlyph(codepoint, false, fSize);
-                                if (glyph) {
-                                    currentWordWidth += static_cast<s32>(glyph->xAdvance * glyph->currFontSize);
-                                }
-                            }
-                        }
-
-                        if (inWord) {
-                            if (currX + currentWordWidth > m_maxWidth && currX > 0) {
+                            if (renderer->getTextDimensions(currentLine + word, false, fSize).first > m_maxWidth &&
+                                !currentLine.empty()) {
                                 lines++;
+                                currentLine = word;
+                            } else {
+                                currentLine += word;
                             }
+
+                            pos = nextSpace + (nextSpace < text.length() ? 1 : 0);
                         }
 
+                        if (!currentLine.empty()) lines++;
                         return lines;
                     };
                     const int nNote = ( (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty()) ? countLines(m_note, m_fontSize - 3) : 0;
                     const u16 noteLineHeight = (m_fontSize - 3) + 3;
-                    const u16 noteHeight = nNote > 0 ? (nNote * noteLineHeight + 8) : 0;
+                    const u16 noteHeight = nNote > 0 ? (nNote * noteLineHeight + noteBlockPadding) : 0;
 
-                    m_calculatedHeight = std::max((int)m_listItemHeight, (int)(noteHeight + (m_fontSize + 4) + 10));
+                    if (nNote == 0) {
+                        m_calculatedHeight = m_listItemHeight;
+                    } else {
+                        m_calculatedHeight = std::max((int)m_listItemHeight, (int)(noteHeight + (m_fontSize + 4) + verticalPadding));
+                    }
                 }
             }
         
@@ -8603,17 +8572,20 @@ namespace tsl {
                 // Universal baseline formula WITHOUT yOffset for perfect centering
                 const auto metrics = tsl::gfx::FontManager::getFontMetricsForCharacter('A', m_fontSize);
                 const s32 baselineY = (overriddenBaseline != -1) ? overriddenBaseline : (getY() + (static_cast<s32>(getHeight()) + metrics.ascent + metrics.descent) / 2);
+                const s32 boxX = 4;
+                const s32 unboxedTextPadding = std::max<s32>(10, (static_cast<s32>(m_fontSize) * 5) / 6);
+                const s32 boxToTextGap = std::max<s32>(14, (static_cast<s32>(m_fontSize) * 11) / 10);
 
                 if (m_focused) {
                     // Draw Left Box if enabled
                     if (m_flags.m_useLeftBox) {
                          const std::string box = isChecked() ? ult::BOX_SOLID_SYMBOL : ult::BOX_EMPTY_SYMBOL;
-                         renderer->drawString(box, false, this->getX() + 4, baselineY, m_fontSize, 
+                         renderer->drawString(box, false, this->getX() + boxX, baselineY, m_fontSize, 
                             !ult::useSelectionText ? defaultTextColor: (useClickTextColor ? clickTextColor : selectedTextColor));
                     }
 
                     // Scissor for text only
-                    s32 textStartX = m_flags.m_useLeftBox ? getX() + 28 : getX() + 19;
+                    s32 textStartX = m_flags.m_useLeftBox ? getX() + boxX + boxToTextGap : getX() + unboxedTextPadding;
                     
                     renderer->enableScissoring(textStartX - 6, 97, m_maxWidth + (m_value.empty() ? 49 : 27), tsl::cfg::FramebufferHeight - 170);
                 #if IS_LAUNCHER_DIRECTIVE
@@ -8629,21 +8601,21 @@ namespace tsl {
                 #if IS_LAUNCHER_DIRECTIVE
                     if (m_flags.m_useLeftBox) {
                         const std::string box = isChecked() ? ult::BOX_SOLID_SYMBOL : ult::BOX_EMPTY_SYMBOL;
-                        renderer->drawString(box, false, this->getX() + 4, baselineY, m_fontSize, m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor));
-                        renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 28, baselineY, m_fontSize,
+                        renderer->drawString(box, false, this->getX() + boxX, baselineY, m_fontSize, m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor));
+                        renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + boxX + boxToTextGap, baselineY, m_fontSize,
                             m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor), starColor);
                     } else {
-                        renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 19, baselineY, m_fontSize,
+                        renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + unboxedTextPadding, baselineY, m_fontSize,
                             m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor), starColor);
                     }
                 #else
                     if (m_flags.m_useLeftBox) {
                          const std::string box = isChecked() ? ult::BOX_SOLID_SYMBOL : ult::BOX_EMPTY_SYMBOL;
-                         renderer->drawString(box, false, this->getX() + 4, baselineY, m_fontSize, m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor));
-                         renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 28, baselineY, m_fontSize,
+                         renderer->drawString(box, false, this->getX() + boxX, baselineY, m_fontSize, m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor));
+                         renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + boxX + boxToTextGap, baselineY, m_fontSize,
                              m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor), textSeparatorColor);
                     } else {
-                        renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + 19, baselineY, m_fontSize,
+                        renderer->drawStringWithColoredSections(m_ellipsisText, false, specialSymbols, getX() + unboxedTextPadding, baselineY, m_fontSize,
                              m_flags.m_hasCustomTextColor ? m_customTextColor : (useClickTextColor ? clickTextColor : defaultTextColor), textSeparatorColor);
                     }
                 #endif
