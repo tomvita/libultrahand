@@ -6002,6 +6002,7 @@ namespace tsl {
                 m_isItem = false;
                 m_hasSetInitialFocusHack = false;
                 m_hasRenderedInitialFocus = false;
+                m_lastShowCheatNotes = ult::showCheatNotes;
 
                 // Initialize new scrollbar color transition members
                 m_scrollbarAtWall = false;
@@ -6096,6 +6097,13 @@ namespace tsl {
                 }
                 if (!m_itemsToRemove.empty()) {
                     removePendingItems();
+                }
+
+                // Avoid one-frame incorrect geometry when notes visibility toggles:
+                // force an immediate relayout before rendering this frame.
+                if (m_lastShowCheatNotes != ult::showCheatNotes) {
+                    m_lastShowCheatNotes = ult::showCheatNotes;
+                    invalidate();
                 }
                 
                 const s32 topBound = getTopBound();
@@ -6425,6 +6433,7 @@ namespace tsl {
             bool m_justArrivedAtBoundary = false;
             bool m_hasSetInitialFocusHack = false;
             bool m_hasRenderedInitialFocus = false;
+            bool m_lastShowCheatNotes = false;
 
             //bool m_hasRenderedCache = false;
 
