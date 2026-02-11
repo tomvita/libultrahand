@@ -620,6 +620,7 @@ namespace ult {
     std::string BACK = "Back";
     std::string HIDE = "Hide";
     std::string CANCEL = "Cancel";
+    std::string FOOTER_Y_HINT = "";
 
     std::string GAP_1 = "     ";
     std::string GAP_2 = "  ";

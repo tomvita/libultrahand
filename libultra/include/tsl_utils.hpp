@@ -536,6 +536,7 @@ namespace ult {
     extern std::string BACK;
     extern std::string HIDE;
     extern std::string CANCEL;
+    extern std::string FOOTER_Y_HINT;
 
     extern std::string GAP_1;
     extern std::string GAP_2;

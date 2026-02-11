@@ -5311,15 +5311,19 @@ namespace tsl {
                         ? "\uE0ED" + ult::GAP_2 + m_pageLeftName
                         : !interpreterIsRunningNow && !m_pageRightName.empty()
                             ? "\uE0EE" + ult::GAP_2 + m_pageRightName
-                            : "");
+                            : "") +
+                    (!interpreterIsRunningNow && !ult::FOOTER_Y_HINT.empty()
+                        ? ult::GAP_1 + "\uE0E3" + ult::GAP_2 + ult::FOOTER_Y_HINT
+                        : "");
             #else
                 const std::string currentBottomLine =
                     "\uE0E1" + ult::GAP_2 + ult::BACK + ult::GAP_1 + (!m_noClickableItems ? "\uE0E0" + ult::GAP_2 + ult::OK + ult::GAP_1 : "") +
-                    (!m_pageLeftName.empty() ? "\uE0ED" + ult::GAP_2 + m_pageLeftName : !m_pageRightName.empty() ? "\uE0EE" + ult::GAP_2 + m_pageRightName : "");
+                    (!m_pageLeftName.empty() ? "\uE0ED" + ult::GAP_2 + m_pageLeftName : !m_pageRightName.empty() ? "\uE0EE" + ult::GAP_2 + m_pageRightName : "") +
+                    (!ult::FOOTER_Y_HINT.empty() ? ult::GAP_1 + "\uE0E3" + ult::GAP_2 + ult::FOOTER_Y_HINT : "");
             #endif
                 
                 // Render the text - it starts halfGap inside the first button, so edgePadding + halfGap
-                static const std::vector<std::string> specialChars2 = {"\uE0E1","\uE0E0","\uE0ED","\uE0EE","\uE0E5"};
+                static const std::vector<std::string> specialChars2 = {"\uE0E1","\uE0E0","\uE0ED","\uE0EE","\uE0E5","\uE0E3"};
                 renderer->drawStringWithColoredSections(currentBottomLine, false, specialChars2, 
                                                         buttonStartX, 693, 23, 
                                                         bottomTextColor, buttonColor);
@@ -5667,7 +5671,8 @@ namespace tsl {
                     "\uE0E1" + ult::GAP_2 + ult::BACK + ult::GAP_1 +
                     (!m_noClickableItems 
                         ? "\uE0E0" + ult::GAP_2 + ult::OK + ult::GAP_1
-                        : "");
+                        : "") +
+                    (!ult::FOOTER_Y_HINT.empty() ? "\uE0E3" + ult::GAP_2 + ult::FOOTER_Y_HINT + ult::GAP_1 : "");
                 
                 // Determine if we should use cached bottom text (first frame of new overlay)
                 //const bool useCachedBottom = !g_cachedBottom.disabled && 
@@ -5678,7 +5683,7 @@ namespace tsl {
                 
                 // Render the text with special character handling
                 if (!deactivateOriginalFooter)  {
-                    static const std::vector<std::string> specialChars = {"\uE0E1","\uE0E0","\uE0ED","\uE0EE","\uE0E5"};
+                    static const std::vector<std::string> specialChars = {"\uE0E1","\uE0E0","\uE0ED","\uE0EE","\uE0E5","\uE0E3"};
                     renderer->drawStringWithColoredSections(menuBottomLine, false, specialChars, buttonStartX, 693, 23, bottomTextColor, buttonColor);
                 }
                 
@@ -5852,9 +5857,10 @@ namespace tsl {
             
                 // Draw bottom text
                 const std::string menuBottomLine = "\uE0E1" + ult::GAP_2 + ult::BACK + ult::GAP_1 +
-                                                   "\uE0E0" + ult::GAP_2 + ult::OK + ult::GAP_1;
+                                                   "\uE0E0" + ult::GAP_2 + ult::OK + ult::GAP_1 +
+                                                   (!ult::FOOTER_Y_HINT.empty() ? "\uE0E3" + ult::GAP_2 + ult::FOOTER_Y_HINT + ult::GAP_1 : "");
                 renderer->drawStringWithColoredSections(menuBottomLine, false,
-                                                        {"\uE0E1", "\uE0E0", "\uE0ED", "\uE0EE"},
+                                                        {"\uE0E1", "\uE0E0", "\uE0ED", "\uE0EE", "\uE0E3"},
                                                         buttonStartX, 693, 23,
                                                         bottomTextColor, buttonColor);
             
