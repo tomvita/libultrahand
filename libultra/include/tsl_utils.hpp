@@ -173,6 +173,7 @@ namespace ult {
     extern bool useSoundEffects;
     extern bool useHapticFeedback;
     extern bool usePageSwap;
+    extern bool takeOverOvlmenu;
     extern std::atomic<bool> noClickableItems;
 
     extern bool useDynamicLogo;

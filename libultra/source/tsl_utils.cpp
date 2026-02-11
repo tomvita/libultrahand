@@ -268,6 +268,7 @@ namespace ult {
     bool useSoundEffects = true;
     bool useHapticFeedback = false;
     bool usePageSwap = false;
+    bool takeOverOvlmenu = false;
     bool useDynamicLogo = true;
     bool useSelectionBG = true;
     bool useSelectionText = true;
