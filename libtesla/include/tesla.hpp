@@ -13519,6 +13519,25 @@ namespace tsl {
         
         static auto currentUnderscanPixels = std::make_pair(0, 0);
 
+        static inline u64 mapKeyboardHeldToController(const HidKeyboardState &state) {
+            u64 held = 0;
+            const bool shiftHeld = (state.modifiers & HidKeyboardModifier_Shift) != 0;
+            if (hidKeyboardStateGetKey(&state, HidKeyboardKey_UpArrow))       held |= KEY_UP;
+            if (hidKeyboardStateGetKey(&state, HidKeyboardKey_DownArrow))     held |= KEY_DOWN;
+            if (hidKeyboardStateGetKey(&state, HidKeyboardKey_LeftArrow))     held |= KEY_LEFT;
+            if (hidKeyboardStateGetKey(&state, HidKeyboardKey_RightArrow))    held |= KEY_RIGHT;
+            // Map only plain main Enter to KEY_A.
+            // NumPadEnter and Shift+Enter are reserved for KeyboardGui confirm flow.
+            if (hidKeyboardStateGetKey(&state, HidKeyboardKey_Return) && !shiftHeld) {
+                held |= KEY_A;
+            }
+            if (hidKeyboardStateGetKey(&state, HidKeyboardKey_Escape))        held |= KEY_B;
+            if (hidKeyboardStateGetKey(&state, HidKeyboardKey_Plus))          held |= KEY_PLUS;
+            if (hidKeyboardStateGetKey(&state, HidKeyboardKey_Minus))         held |= KEY_MINUS;
+            return held;
+        }
+
+
         /**
          * @brief Background event polling loop thread
          *
@@ -13579,10 +13598,15 @@ namespace tsl {
             
             // Touch screen init
             hidInitializeTouchScreen();
+            hidInitializeKeyboard();
             
             // Clear any stale input from both controllers
             padUpdate(&pad_p1);
             padUpdate(&pad_handheld);
+
+            HidKeyboardState currentKeyboardState = {};
+            HidKeyboardState previousKeyboardState = {};
+            bool hasPreviousKeyboardState = false;
 
             //ult::initHaptics(); // initialize rumble
             
@@ -13958,9 +13982,23 @@ namespace tsl {
                     const u64 kHeld_p1 = padGetButtons(&pad_p1);
                     const u64 kDown_handheld = padGetButtonsDown(&pad_handheld);
                     const u64 kHeld_handheld = padGetButtons(&pad_handheld);
-                    
-                    shData->keysDown = kDown_p1 | kDown_handheld;
-                    shData->keysHeld = kHeld_p1 | kHeld_handheld;
+
+                    u64 keyboardHeld = 0;
+                    u64 keyboardDown = 0;
+                    if (hidGetKeyboardStates(&currentKeyboardState, 1) > 0) {
+                        keyboardHeld = mapKeyboardHeldToController(currentKeyboardState);
+                        if (hasPreviousKeyboardState) {
+                            const u64 previousHeld = mapKeyboardHeldToController(previousKeyboardState);
+                            keyboardDown = keyboardHeld & ~previousHeld;
+                        }
+                        previousKeyboardState = currentKeyboardState;
+                        hasPreviousKeyboardState = true;
+                    } else {
+                        hasPreviousKeyboardState = false;
+                    }
+
+                    shData->keysDown = kDown_p1 | kDown_handheld | keyboardDown;
+                    shData->keysHeld = kHeld_p1 | kHeld_handheld | keyboardHeld;
                     
                     // For joysticks, prioritize handheld if available, otherwise use P1
                     const HidAnalogStickState leftStick_handheld = padGetStickPos(&pad_handheld, 0);
