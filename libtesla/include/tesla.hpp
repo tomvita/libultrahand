@@ -8032,18 +8032,34 @@ namespace tsl {
                     const bool drawNotes = (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty();
                     if (drawNotes) {
                         noteLineHeight = noteFontSize + 3;
-                        std::string currentLine; size_t pos = 0;
-                        while (pos < m_note.length()) {
-                            size_t nextSpace = m_note.find(' ', pos);
-                            if (nextSpace == std::string::npos) nextSpace = m_note.length();
-                            std::string word = m_note.substr(pos, nextSpace - pos);
-                            if (nextSpace < m_note.length()) word += ' ';
-                            if (renderer->getTextDimensions(currentLine + word, false, noteFontSize).first > m_maxWidth && !currentLine.empty()) {
-                                noteLines.push_back(currentLine); currentLine = word;
-                            } else currentLine += word;
-                            pos = nextSpace + (nextSpace < m_note.length() ? 1 : 0);
+                        size_t paraStart = 0;
+                        while (paraStart <= m_note.length()) {
+                            const size_t paraEnd = m_note.find('\n', paraStart);
+                            const bool hasMoreParagraphs = (paraEnd != std::string::npos);
+                            const std::string paragraph = hasMoreParagraphs
+                                ? m_note.substr(paraStart, paraEnd - paraStart)
+                                : m_note.substr(paraStart);
+
+                            if (paragraph.empty()) {
+                                noteLines.push_back("");
+                            } else {
+                                std::string currentLine; size_t pos = 0;
+                                while (pos < paragraph.length()) {
+                                    size_t nextSpace = paragraph.find(' ', pos);
+                                    if (nextSpace == std::string::npos) nextSpace = paragraph.length();
+                                    std::string word = paragraph.substr(pos, nextSpace - pos);
+                                    if (nextSpace < paragraph.length()) word += ' ';
+                                    if (renderer->getTextDimensions(currentLine + word, false, noteFontSize).first > m_maxWidth && !currentLine.empty()) {
+                                        noteLines.push_back(currentLine); currentLine = word;
+                                    } else currentLine += word;
+                                    pos = nextSpace + (nextSpace < paragraph.length() ? 1 : 0);
+                                }
+                                if (!currentLine.empty()) noteLines.push_back(currentLine);
+                            }
+
+                            if (!hasMoreParagraphs) break;
+                            paraStart = paraEnd + 1;
                         }
-                        if (!currentLine.empty()) noteLines.push_back(currentLine);
                         numNoteLines = noteLines.size();
                     }
 
@@ -8086,18 +8102,34 @@ namespace tsl {
                     const bool drawNotes = (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty();
                     if (drawNotes) {
                         noteLineHeight = noteFontSize + 3;
-                        std::string currentLine; size_t pos = 0;
-                        while (pos < m_note.length()) {
-                            size_t nextSpace = m_note.find(' ', pos);
-                            if (nextSpace == std::string::npos) nextSpace = m_note.length();
-                            std::string word = m_note.substr(pos, nextSpace - pos);
-                            if (nextSpace < m_note.length()) word += ' ';
-                            if (renderer->getTextDimensions(currentLine + word, false, noteFontSize).first > m_maxWidth && !currentLine.empty()) {
-                                noteLines.push_back(currentLine); currentLine = word;
-                            } else currentLine += word;
-                            pos = nextSpace + (nextSpace < m_note.length() ? 1 : 0);
+                        size_t paraStart = 0;
+                        while (paraStart <= m_note.length()) {
+                            const size_t paraEnd = m_note.find('\n', paraStart);
+                            const bool hasMoreParagraphs = (paraEnd != std::string::npos);
+                            const std::string paragraph = hasMoreParagraphs
+                                ? m_note.substr(paraStart, paraEnd - paraStart)
+                                : m_note.substr(paraStart);
+
+                            if (paragraph.empty()) {
+                                noteLines.push_back("");
+                            } else {
+                                std::string currentLine; size_t pos = 0;
+                                while (pos < paragraph.length()) {
+                                    size_t nextSpace = paragraph.find(' ', pos);
+                                    if (nextSpace == std::string::npos) nextSpace = paragraph.length();
+                                    std::string word = paragraph.substr(pos, nextSpace - pos);
+                                    if (nextSpace < paragraph.length()) word += ' ';
+                                    if (renderer->getTextDimensions(currentLine + word, false, noteFontSize).first > m_maxWidth && !currentLine.empty()) {
+                                        noteLines.push_back(currentLine); currentLine = word;
+                                    } else currentLine += word;
+                                    pos = nextSpace + (nextSpace < paragraph.length() ? 1 : 0);
+                                }
+                                if (!currentLine.empty()) noteLines.push_back(currentLine);
+                            }
+
+                            if (!hasMoreParagraphs) break;
+                            paraStart = paraEnd + 1;
                         }
-                        if (!currentLine.empty()) noteLines.push_back(currentLine);
                         numNoteLines = noteLines.size();
                     }
 
@@ -8496,27 +8528,41 @@ namespace tsl {
                     auto countLines = [&](const std::string& text, u8 fSize) -> int {
                         if (text.empty()) return 0;
                         int lines = 0;
-                        std::string currentLine;
-                        size_t pos = 0;
+                        size_t paraStart = 0;
+                        while (paraStart <= text.length()) {
+                            const size_t paraEnd = text.find('\n', paraStart);
+                            const bool hasMoreParagraphs = (paraEnd != std::string::npos);
+                            const std::string paragraph = hasMoreParagraphs
+                                ? text.substr(paraStart, paraEnd - paraStart)
+                                : text.substr(paraStart);
 
-                        while (pos < text.length()) {
-                            size_t nextSpace = text.find(' ', pos);
-                            if (nextSpace == std::string::npos) nextSpace = text.length();
-                            std::string word = text.substr(pos, nextSpace - pos);
-                            if (nextSpace < text.length()) word += ' ';
-
-                            if (renderer->getTextDimensions(currentLine + word, false, fSize).first > m_maxWidth &&
-                                !currentLine.empty()) {
+                            if (paragraph.empty()) {
                                 lines++;
-                                currentLine = word;
                             } else {
-                                currentLine += word;
+                                std::string currentLine;
+                                size_t pos = 0;
+                                while (pos < paragraph.length()) {
+                                    size_t nextSpace = paragraph.find(' ', pos);
+                                    if (nextSpace == std::string::npos) nextSpace = paragraph.length();
+                                    std::string word = paragraph.substr(pos, nextSpace - pos);
+                                    if (nextSpace < paragraph.length()) word += ' ';
+
+                                    if (renderer->getTextDimensions(currentLine + word, false, fSize).first > m_maxWidth &&
+                                        !currentLine.empty()) {
+                                        lines++;
+                                        currentLine = word;
+                                    } else {
+                                        currentLine += word;
+                                    }
+
+                                    pos = nextSpace + (nextSpace < paragraph.length() ? 1 : 0);
+                                }
+                                if (!currentLine.empty()) lines++;
                             }
 
-                            pos = nextSpace + (nextSpace < text.length() ? 1 : 0);
+                            if (!hasMoreParagraphs) break;
+                            paraStart = paraEnd + 1;
                         }
-
-                        if (!currentLine.empty()) lines++;
                         return lines;
                     };
                     int nLabel = countLines(m_text_clean, m_fontSize);
@@ -8548,27 +8594,41 @@ namespace tsl {
                     auto countLines = [&](const std::string& text, u8 fSize) -> int {
                         if (text.empty()) return 0;
                         int lines = 0;
-                        std::string currentLine;
-                        size_t pos = 0;
+                        size_t paraStart = 0;
+                        while (paraStart <= text.length()) {
+                            const size_t paraEnd = text.find('\n', paraStart);
+                            const bool hasMoreParagraphs = (paraEnd != std::string::npos);
+                            const std::string paragraph = hasMoreParagraphs
+                                ? text.substr(paraStart, paraEnd - paraStart)
+                                : text.substr(paraStart);
 
-                        while (pos < text.length()) {
-                            size_t nextSpace = text.find(' ', pos);
-                            if (nextSpace == std::string::npos) nextSpace = text.length();
-                            std::string word = text.substr(pos, nextSpace - pos);
-                            if (nextSpace < text.length()) word += ' ';
-
-                            if (renderer->getTextDimensions(currentLine + word, false, fSize).first > m_maxWidth &&
-                                !currentLine.empty()) {
+                            if (paragraph.empty()) {
                                 lines++;
-                                currentLine = word;
                             } else {
-                                currentLine += word;
+                                std::string currentLine;
+                                size_t pos = 0;
+                                while (pos < paragraph.length()) {
+                                    size_t nextSpace = paragraph.find(' ', pos);
+                                    if (nextSpace == std::string::npos) nextSpace = paragraph.length();
+                                    std::string word = paragraph.substr(pos, nextSpace - pos);
+                                    if (nextSpace < paragraph.length()) word += ' ';
+
+                                    if (renderer->getTextDimensions(currentLine + word, false, fSize).first > m_maxWidth &&
+                                        !currentLine.empty()) {
+                                        lines++;
+                                        currentLine = word;
+                                    } else {
+                                        currentLine += word;
+                                    }
+
+                                    pos = nextSpace + (nextSpace < paragraph.length() ? 1 : 0);
+                                }
+                                if (!currentLine.empty()) lines++;
                             }
 
-                            pos = nextSpace + (nextSpace < text.length() ? 1 : 0);
+                            if (!hasMoreParagraphs) break;
+                            paraStart = paraEnd + 1;
                         }
-
-                        if (!currentLine.empty()) lines++;
                         return lines;
                     };
                     const int nNote = ( (ult::showCheatNotes || m_flags.m_alwaysShowNote) && !m_note.empty()) ? countLines(m_note, m_fontSize - 3) : 0;
