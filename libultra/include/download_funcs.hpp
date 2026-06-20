@@ -24,10 +24,12 @@
 #include <sys/stat.h>
 #include <switch.h>
 
+#ifndef BREEZEHAND_LIGHT
 #define CURL_DISABLE_DEFLATE
 #include <curl/curl.h>
 #include <zlib.h>
 #include <minizip/unzip.h>
+#endif
 
 #include <atomic>
 #include <memory>

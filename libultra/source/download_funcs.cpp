@@ -43,6 +43,7 @@ std::atomic<bool> abortUnzip(false);
 std::atomic<int> downloadPercentage(-1);
 std::atomic<int> unzipPercentage(-1);
 
+#ifndef BREEZEHAND_LIGHT
 // Thread-safe curl initialization
 static std::mutex curlInitMutex;
 static std::atomic<bool> curlInitialized(false);
@@ -923,4 +924,12 @@ bool unzipFile(const std::string& zipFilePath, const std::string& toDestination)
         return false;
     }
 }
+#else
+bool downloadFile(const std::string& url, const std::string& toDestination, bool noSocketInit, bool noPercentagePolling) {
+    return false;
+}
+bool unzipFile(const std::string& zipFilePath, const std::string& toDestination) {
+    return false;
+}
+#endif
 }

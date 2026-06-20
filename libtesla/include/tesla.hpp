@@ -1258,9 +1258,15 @@ namespace tsl {
             inline static std::unordered_map<u64, FontMetrics> s_fontMetricsCache;
             
             // Add cache size limits
+            #ifdef BREEZEHAND_LIGHT
+            static constexpr size_t MAX_CACHE_SIZE = 200;
+            static constexpr size_t CLEANUP_THRESHOLD = 150;
+            static constexpr size_t MAX_NOTIFICATION_CACHE_SIZE = 50; // Separate limit for notifications
+            #else
             static constexpr size_t MAX_CACHE_SIZE = 1200;
             static constexpr size_t CLEANUP_THRESHOLD = 1000;
             static constexpr size_t MAX_NOTIFICATION_CACHE_SIZE = 200; // Separate limit for notifications
+            #endif
             
             // font handles & state
             inline static stbtt_fontinfo* s_stdFont     = nullptr;
